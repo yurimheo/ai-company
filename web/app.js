@@ -1,4 +1,4 @@
-import { findPath, tileKey, WALKABLE_TILES } from "./engine.js";
+import { classifyCommand, findPath, tileKey, WALKABLE_TILES } from "./engine.js";
 
 const TILE = 30;
 const MOVE_MS = 165;
@@ -99,6 +99,29 @@ const DEPARTMENTS = {
     code: "CEO",
   },
 };
+
+const NEXT_ROOM = {
+  vmware: "qa",
+  k8s: "qa",
+  linux: "qa",
+  trend: "qa",
+  brand: "qa",
+  qa: "meeting",
+  writer: "format",
+  format: "auto",
+  review: "secretary",
+  auto: "secretary",
+  secretary: "ceo",
+};
+
+const TEAM_ALIASES = Object.fromEntries(
+  Object.entries(DEPARTMENTS)
+    .filter(([id]) => id !== "ceo")
+    .map(([id, department]) => [
+      id,
+      [department.name, department.short, department.code].filter(Boolean),
+    ]),
+);
 
 const ROSTER = {
   vmware: [
@@ -505,7 +528,7 @@ function drawTile(x, y, type) {
 function drawRoomSigns() {
   mapContext.textAlign = "center";
   mapContext.textBaseline = "middle";
-  mapContext.font = '700 8px "Apple SD Gothic Neo", sans-serif';
+  mapContext.font = '100 10px "A2z", "Galmuri9", sans-serif';
   for (const room of allRooms) {
     const signY = room.facing === "down" ? room.y * TILE + 2 : (room.y + room.h - 1) * TILE + 20;
     const signX = (room.x + room.w / 2) * TILE;
@@ -575,6 +598,8 @@ const day = {
 let zoom = 1;
 let selectedPerson = null;
 let rosterFilter = "전체";
+let autoAdvanceTimer = null;
+const manualWorkTimers = new Map();
 
 function occupiedTiles(excludeId) {
   return new Set(people.filter((person) => person.id !== excludeId).map((person) => tileKey(person.tile.x, person.tile.y)));
@@ -647,6 +672,120 @@ function sendPeopleToRoom(group, roomId, status, animation = null, returnDelay =
       }
     });
   });
+}
+
+function clearAutoAdvance() {
+  if (autoAdvanceTimer) window.clearTimeout(autoAdvanceTimer);
+  autoAdvanceTimer = null;
+}
+
+function scheduleAutoAdvance() {
+  clearAutoAdvance();
+  if (!day.started || day.step === 7 || day.step >= 12) return;
+  const delay = [5, 6, 9, 10].includes(day.step) ? 5200 : 3600;
+  autoAdvanceTimer = window.setTimeout(() => {
+    if (!day.started || day.step === 7 || day.step >= 12) return;
+    applyStage(day.step + 1);
+  }, delay);
+}
+
+function meetingLine(person, departmentId, leadersMeeting = false) {
+  const department = DEPARTMENTS[departmentId];
+  if (leadersMeeting) {
+    return `${department.short}은 현재 ${person.status} 상태예요. ${person.detail} 기준으로 다음 행동을 준비할게요.`;
+  }
+  if (person.role === "팀장" || person.role === "실장") {
+    return `${department.code} 기준으로 오늘 할 일과 반려 기준을 먼저 맞출게요.`;
+  }
+  return `${person.detail} 맡을게요. 확인한 결과는 한 줄로 공유하겠습니다.`;
+}
+
+function runMeeting(group, label, leadersMeeting = false) {
+  const meetingRoom = rooms.meeting;
+  const savedStatuses = new Map(group.map((person) => [person.id, person.status]));
+  const outsideOccupants = occupiedTiles();
+  group.forEach((person) => outsideOccupants.delete(tileKey(person.tile.x, person.tile.y)));
+  const freeSeats = meetingRoom.meetingSeats.filter(
+    (seat) => !outsideOccupants.has(tileKey(seat.x, seat.y)),
+  );
+  let arrived = 0;
+  let startedTalking = false;
+
+  brief(`${label} 구성원 ${group.length}명이 회의실로 이동 중이에요.`);
+  logActivity(`${label} 회의를 소집했어요.`);
+
+  const startConversation = () => {
+    if (startedTalking) return;
+    startedTalking = true;
+    brief(`${label} 회의를 시작해요. 한 명씩 순서대로 보고합니다.`);
+    group.forEach((person, index) => {
+      window.setTimeout(() => {
+        group.forEach((member) => {
+          member.animation = member === person ? "talk" : "sit";
+        });
+        const line = meetingLine(person, person.departmentId, leadersMeeting);
+        brief(`${person.name}: “${line}”`);
+        logActivity(`${person.name} 보고: ${line}`);
+      }, index * 1500);
+    });
+
+    window.setTimeout(
+      () => {
+        group.forEach((person) => {
+          person.animation = null;
+          person.status = savedStatuses.get(person.id) || "대기";
+          routeHome(person);
+        });
+        refreshStatusUI();
+        brief(`${label} 회의가 끝났어요. 전원이 원래 자리로 복귀합니다.`);
+        logActivity(`${label} 회의를 마쳤어요.`);
+      },
+      group.length * 1500 + 1200,
+    );
+  };
+
+  group.forEach((person, index) => {
+    const destination =
+      freeSeats[index] ||
+      freeDestination(meetingRoom, meetingRoom.meetingSeats, person.id);
+    setStatus(person, "진행 중", { animation: null });
+    routePerson(person, destination, () => {
+      person.animation = "sit";
+      arrived += 1;
+      if (arrived === group.length) startConversation();
+    });
+  });
+}
+
+function callTeamMeeting(id) {
+  runMeeting(team(id), DEPARTMENTS[id].name, false);
+}
+
+function assignTeamWork(id) {
+  const members = team(id);
+  const department = DEPARTMENTS[id];
+  if (!members.length) return;
+
+  if (manualWorkTimers.has(id)) {
+    window.clearTimeout(manualWorkTimers.get(id));
+  }
+
+  members.forEach((person) => {
+    person.animation = null;
+    setStatus(person, "진행 중");
+    routeHome(person);
+  });
+  brief(`${department.name}에 업무를 지시했어요. ${members.length}명 모두 자리에서 타이핑을 시작합니다.`);
+  logActivity(`${department.name}: 대표 직접 업무 지시.`);
+
+  const timer = window.setTimeout(() => {
+    const destinationRoom = NEXT_ROOM[id] || "ceo";
+    sendPeopleToRoom(members, destinationRoom, "완료", "talk", 2800);
+    brief(`${department.name}이 업무를 마치고 ${rooms[destinationRoom].name}에 결과를 전달하러 이동해요.`);
+    logActivity(`${department.name}: 업무 완료, ${rooms[destinationRoom].name} 전달.`);
+    manualWorkTimers.delete(id);
+  }, 6500);
+  manualWorkTimers.set(id, timer);
 }
 
 function moveTick() {
@@ -983,9 +1122,11 @@ function applyStage(step) {
 
   refreshStageUI();
   refreshStatusUI();
+  scheduleAutoAdvance();
 }
 
 function startDay() {
+  clearAutoAdvance();
   day.started = true;
   day.finished = false;
   day.decision = null;
@@ -998,6 +1139,7 @@ function startDay() {
 
 function nextStep() {
   if (!day.started) return;
+  clearAutoAdvance();
   if (day.step === 7 && !day.decision) {
     brief("대표 승인 전에는 기술노트 작성으로 넘어갈 수 없어요.");
     return;
@@ -1009,6 +1151,8 @@ function nextStep() {
     day.decision = null;
     document.getElementById("domain-select").disabled = false;
     document.getElementById("start-day").disabled = false;
+    document.getElementById("start-day").innerHTML =
+      '<span aria-hidden="true">▶</span> 오늘 업무 시작';
     resetStatuses();
     returnEveryoneHome();
     refreshStageUI();
@@ -1038,6 +1182,7 @@ function handleDecision(decision) {
     day.decision = null;
     brief("보류로 기록했어요. 파이프라인은 대표 승인 단계에서 계속 멈춰 있어요.");
   } else if (decision === "폐기") {
+    clearAutoAdvance();
     day.started = false;
     day.step = 0;
     resetStatuses();
@@ -1049,26 +1194,51 @@ function handleDecision(decision) {
   }
 }
 
+function secretaryVisit(message, logMessage) {
+  const secretary = team("secretary")[0];
+  const savedStatus = secretary.status;
+  const target = freeDestination(
+    rooms.ceo,
+    rooms.ceo.openTiles.filter((tile) => WALKABLE_TILES.has(grid[tile.y][tile.x])),
+    secretary.id,
+  );
+  setStatus(secretary, "진행 중", { animation: null });
+  routePerson(secretary, target, () => {
+    secretary.animation = "talk";
+    brief(message);
+    logActivity(logMessage);
+    window.setTimeout(() => {
+      secretary.animation = null;
+      secretary.status = savedStatus;
+      routeHome(secretary);
+      refreshStatusUI();
+    }, 3000);
+  });
+}
+
 function statusReport() {
   const inProgress = people.filter((person) => person.status === "진행 중").length;
   const waitingApproval = people.filter((person) => person.status === "승인 대기").length;
   const blocked = people.filter((person) => person.status === "연동 대기").length;
   const current = day.step ? `${day.step}단계 ${STEPS[day.step - 1].title}` : "업무 준비";
-  brief(`현재 ${current}. 진행 중 ${inProgress}명, 승인 대기 ${waitingApproval}명, 연동 대기 ${blocked}명이에요.`);
-  logActivity("비서실 현황 보고를 확인했어요.");
+  secretaryVisit(
+    `현재 ${current}. 진행 중 ${inProgress}명, 승인 대기 ${waitingApproval}명, 연동 대기 ${blocked}명이에요.`,
+    "강아지 브리프가 대표실에서 현황을 보고했어요.",
+  );
 }
 
 function reportBottleneck() {
+  let message;
   if (day.step === 7 && !day.decision) {
-    brief("원인은 하나예요 — 대표님 결재 대기입니다. 승인만 주시면 기술노트 작성으로 넘어갑니다.");
+    message = "원인은 하나예요 — 대표님 결재 대기입니다. 승인만 주시면 기술노트 작성으로 넘어갑니다.";
   } else if (people.some((person) => person.status === "연동 대기")) {
-    brief("외부 연동이 병목이에요. 계정 통계가 없어 브랜드·성과 지표를 자동 수집할 수 없어요.");
+    message = "외부 연동이 병목이에요. 계정 통계가 없어 브랜드·성과 지표를 자동 수집할 수 없어요.";
   } else if (day.started && day.step < 12) {
-    brief(`${STEPS[day.step - 1].title} 단계가 정상 진행 중이에요. 지연은 없습니다.`);
+    message = `${STEPS[day.step - 1].title} 단계가 정상 진행 중이에요. 지연은 없습니다.`;
   } else {
-    brief("지연 없습니다. 대표의 다음 지시를 기다리고 있어요.");
+    message = "지연 없습니다. 대표의 다음 지시를 기다리고 있어요.";
   }
-  logActivity("현재 병목을 점검했어요.");
+  secretaryVisit(message, "강아지 브리프가 현재 병목을 보고했어요.");
 }
 
 function callMeeting() {
@@ -1076,19 +1246,7 @@ function callMeeting() {
     .filter((id) => id !== "ceo")
     .map((id) => team(id)[0])
     .filter(Boolean);
-  const currentStatuses = new Map(leaders.map((person) => [person.id, person.status]));
-  sendPeopleToRoom(leaders, "meeting", "승인 대기", "talk", 0);
-  brief("11명의 팀장이 회의실로 이동 중이에요. 도착하면 한 명씩 한 줄로 보고합니다.");
-  logActivity("팀장 전원 회의를 소집했어요.");
-  window.setTimeout(() => {
-    leaders.forEach((person) => {
-      person.animation = null;
-      person.status = currentStatuses.get(person.id) || "대기";
-      routeHome(person);
-    });
-    refreshStatusUI();
-    logActivity("팀장 회의가 끝나 각자 자리로 복귀해요.");
-  }, 8500);
+  runMeeting(leaders, "팀장 전원", true);
 }
 
 function focusMode() {
@@ -1118,16 +1276,20 @@ function handleCommand(raw) {
   const command = raw.trim();
   if (!command) return;
   logActivity(`대표 지시: “${command}”`);
-  if (command.includes("현황") || command.includes("브리핑")) statusReport();
-  else if (command.includes("왜 늦") || command.includes("병목")) reportBottleneck();
-  else if (command.includes("회의")) callMeeting();
-  else if (command.includes("집중")) focusMode();
-  else if (command.includes("승인")) handleDecision("승인");
-  else if (command.includes("다음")) nextStep();
+  const action = classifyCommand(command, TEAM_ALIASES);
+  if (action.type === "team-meeting") callTeamMeeting(action.teamId);
+  else if (action.type === "team-work") assignTeamWork(action.teamId);
+  else if (action.type === "team-report") teamReport(action.teamId);
+  else if (action.type === "status-report") statusReport();
+  else if (action.type === "bottleneck") reportBottleneck();
+  else if (action.type === "leaders-meeting") callMeeting();
+  else if (action.type === "focus") focusMode();
+  else if (action.type === "approve") handleDecision("승인");
+  else if (action.type === "next") nextStep();
   else {
-    const matched = Object.keys(DEPARTMENTS).find((id) => command.includes(DEPARTMENTS[id].short) || command.includes(DEPARTMENTS[id].name));
-    if (matched) teamReport(matched);
-    else brief("인식할 수 있는 지시는 ‘현황 보고’, ‘왜 늦어져?’, ‘회의 소집’, ‘집중 모드’, ‘승인할게’, ‘[부서] 뭐해?’예요.");
+    brief(
+      "인식할 수 있는 지시는 ‘VMware팀 회의 소집’, ‘Linux팀 업무 시작’, ‘현황 보고’, ‘왜 늦어져?’, ‘팀장 회의’, ‘집중 모드’, ‘승인할게’예요.",
+    );
   }
 }
 
@@ -1170,6 +1332,11 @@ function refreshStageUI() {
   });
   document.getElementById("next-step").disabled = !day.started || (day.step === 7 && !day.decision);
   document.getElementById("next-step").textContent = day.step >= 12 ? "새 업무일" : "다음 단계";
+  const startButton = document.getElementById("start-day");
+  startButton.disabled = day.started;
+  startButton.innerHTML = day.started
+    ? '<span aria-hidden="true">●</span> 업무 자동 진행 중'
+    : '<span aria-hidden="true">▶</span> 오늘 업무 시작';
 }
 
 function statusCounts() {
@@ -1270,6 +1437,9 @@ function setupUI() {
 
   document.getElementById("start-day").addEventListener("click", startDay);
   document.getElementById("next-step").addEventListener("click", nextStep);
+  document.getElementById("assign-team").addEventListener("click", () => {
+    assignTeamWork(document.getElementById("team-select").value);
+  });
   document.getElementById("status-report").addEventListener("click", statusReport);
   document.getElementById("bottleneck").addEventListener("click", reportBottleneck);
   document.getElementById("meeting-call").addEventListener("click", callMeeting);
@@ -1342,6 +1512,9 @@ function setupMapControls() {
 }
 
 drawMap();
+if (document.fonts?.ready) {
+  document.fonts.ready.then(drawMap);
+}
 setupUI();
 setupMapControls();
 refreshStageUI();

@@ -1,3 +1,14 @@
+@import url("https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css");
+
+@font-face {
+  font-family: "A2z";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/에이투지체-1Thin.woff2")
+    format("woff2");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --cream-0: #fffaf0;
   --cream-1: #f8edcf;
@@ -42,7 +53,8 @@ body {
     linear-gradient(180deg, #b8d9c4 0 118px, #efd7a5 118px 100%);
   background-size: 6px 6px, 6px 6px, auto;
   font-family:
-    "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    "Galmuri9", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui,
+    sans-serif;
   line-height: 1.45;
 }
 
@@ -172,16 +184,20 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(20px, 2.2vw, 31px);
+  font-family: "A2z", "Galmuri9", sans-serif;
+  font-size: clamp(23px, 2.5vw, 34px);
+  font-weight: 100;
   line-height: 1.14;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.018em;
 }
 
 h2 {
   margin-bottom: 3px;
-  font-size: 18px;
+  font-family: "A2z", "Galmuri9", sans-serif;
+  font-size: 21px;
+  font-weight: 100;
   line-height: 1.2;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.012em;
 }
 
 .clock-card {
@@ -522,7 +538,9 @@ h2 {
 }
 
 .stage-detail strong {
-  font-size: 13px;
+  font-family: "A2z", "Galmuri9", sans-serif;
+  font-size: 17px;
+  font-weight: 100;
 }
 
 .stage-detail p {
@@ -609,6 +627,26 @@ select {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 8px;
+}
+
+.team-action-row {
+  margin: 0 16px 11px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 8px;
+}
+
+.team-action-row .select-wrap {
+  margin: 0;
+}
+
+.work-button {
+  min-height: 40px;
+  padding: 6px 8px;
+  color: #fffaf0;
+  background: var(--peach);
+  border-color: var(--peach-dark);
+  box-shadow: 0 4px 0 #a65f50;
 }
 
 .pixel-button {

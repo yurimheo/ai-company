@@ -72,3 +72,25 @@ export function findPath(grid, start, goal, occupied = new Set()) {
 
   return null;
 }
+
+export function classifyCommand(rawCommand, teamAliases = {}) {
+  const command = rawCommand.trim();
+  const teamId = Object.entries(teamAliases).find(([, aliases]) =>
+    aliases.some((alias) => command.includes(alias)),
+  )?.[0];
+
+  if (teamId && command.includes("회의")) return { type: "team-meeting", teamId };
+  if (teamId && (command.includes("일") || command.includes("업무") || command.includes("시작"))) {
+    return { type: "team-work", teamId };
+  }
+  if (teamId && (command.includes("뭐해") || command.includes("현황"))) {
+    return { type: "team-report", teamId };
+  }
+  if (command.includes("현황") || command.includes("브리핑")) return { type: "status-report" };
+  if (command.includes("왜 늦") || command.includes("병목")) return { type: "bottleneck" };
+  if (command.includes("회의")) return { type: "leaders-meeting" };
+  if (command.includes("집중")) return { type: "focus" };
+  if (command.includes("승인")) return { type: "approve" };
+  if (command.includes("다음")) return { type: "next" };
+  return { type: "unknown" };
+}
