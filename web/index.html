@@ -11,7 +11,7 @@
     <meta property="og:title" content="YURIM AI COMPANY · Pixel Office" />
     <meta
       property="og:description"
-      content="직원들이 알아서 조사하고 대표는 TOP 3만 승인하는 귀여운 자율 운영 픽셀 오피스"
+      content="직원들이 매일 TOP 10 리포트를 만들고 대표가 새 업무를 지시하는 귀여운 자율 운영 픽셀 오피스"
     />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="./og.png" />
@@ -124,6 +124,18 @@
             <li class="transcript-empty">회의가 열리면 동물 직원들이 서로 이름을 부르며 조잘조잘 이야기해요.</li>
           </ol>
         </section>
+
+        <section class="panel roster-panel">
+          <div class="panel-heading small">
+            <div>
+              <p class="eyebrow">31 STAFF + CEO</p>
+              <h2>직원 상태</h2>
+            </div>
+            <span class="people-count" id="people-count">32</span>
+          </div>
+          <div class="roster-filters" id="roster-filters" aria-label="직원 상태 필터"></div>
+          <div class="roster-list" id="roster-list"></div>
+        </section>
         </div>
 
       <aside class="dashboard-stack console-column" aria-label="대표 업무 콘솔">
@@ -131,7 +143,7 @@
           <div class="console-title">
             <div>
               <p class="eyebrow">AUTONOMOUS OFFICE</p>
-              <h2>대표 승인 콘솔</h2>
+              <h2>대표 업무 콘솔</h2>
             </div>
             <span class="live-chip checking" id="vault-connection"><i></i> 연결 확인</span>
           </div>
@@ -165,42 +177,79 @@
             <div><span class="staff-icon species-fox" aria-hidden="true"></span><p><b>IT트렌드팀</b><small id="trend-output">출근 후 생성 현황을 공개해요.</small></p></div>
           </div>
 
+          <section class="task-dispatch" aria-labelledby="task-dispatch-title">
+            <div class="task-dispatch-heading">
+              <div>
+                <span>DIRECT ASSIGNMENT</span>
+                <h3 id="task-dispatch-title">새 업무 시키기</h3>
+              </div>
+              <b id="task-status">대기</b>
+            </div>
+            <label for="task-team">담당 팀</label>
+            <div class="select-wrap task-team-wrap">
+              <select id="task-team">
+                <option value="vmware">VMware팀</option>
+                <option value="trend">IT트렌드팀</option>
+                <option value="k8s">Kubernetes팀</option>
+                <option value="linux">Linux팀</option>
+                <option value="brand">브랜드 분석팀</option>
+                <option value="qa">검수팀</option>
+                <option value="writer">기술노트 작성팀</option>
+                <option value="format">콘텐츠 정리팀</option>
+                <option value="review">성과리뷰팀</option>
+                <option value="auto">자동화 운영팀</option>
+                <option value="secretary">비서실</option>
+              </select>
+            </div>
+            <label for="task-text">업무 내용</label>
+            <textarea id="task-text" maxlength="1000" placeholder="예: 오늘 AI 트렌드 10개를 실무 적용 난이도별로 다시 묶어줘"></textarea>
+            <button type="button" class="task-submit" id="task-submit">업무 보내기</button>
+            <div class="task-queue" id="task-queue">
+              <div class="task-placeholder">추가 업무가 생기면 여기에 진행·완료 상태가 보여요.</div>
+            </div>
+          </section>
+
+          <section class="report-board" aria-labelledby="report-board-title">
+            <div class="report-board-heading">
+              <div>
+                <span>DAILY REPORT</span>
+                <h3 id="report-board-title">오늘의 전체 리포트</h3>
+              </div>
+              <b id="report-count">0 / 20</b>
+            </div>
+            <div class="report-tabs" role="tablist" aria-label="리포트 팀 선택">
+              <button type="button" class="active" data-report-team="trend" role="tab">AI 트렌드 TOP 10</button>
+              <button type="button" data-report-team="vmware" role="tab">VMware 이슈 10</button>
+            </div>
+            <div class="report-items" id="report-items" aria-live="polite">
+              <div class="report-placeholder">오늘 조사 결과를 기다리는 중…</div>
+            </div>
+          </section>
+
           <div class="approval-box" id="approval-box">
             <div>
               <span class="approval-light"></span>
-              <strong>대표 승인</strong>
-              <p id="approval-summary">직원들이 조사하고 있어요. TOP 3가 도착하면 정확한 안건을 보여드릴게요.</p>
+              <strong>선택형 심화노트</strong>
+              <p id="approval-summary">TOP 10 전체 리포트가 먼저 완성돼요. 그중 더 파고들고 싶은 항목만 선택할 수 있어요.</p>
             </div>
             <div class="approval-purpose">
-              <b>왜 대표님이 고르나요?</b>
-              <p>직원들이 20개를 조사·검수해 TOP 3까지 줄였어요. 대표 승인은 그중 <strong>오늘 회사가 실제 기술노트로 만들 1건</strong>을 정하는 마지막 우선순위 결정이에요.</p>
+              <b>이건 필수 결재가 아니에요</b>
+              <p>두 팀의 10개 리포트는 이미 모두 저장돼요. 아래 3개는 <strong>긴 기술노트가 필요할 때만</strong> 고르는 추천이고, 선택하지 않아도 하루 업무는 계속됩니다.</p>
             </div>
             <div class="approval-candidates" id="approval-candidates" aria-live="polite">
               <div class="candidate-placeholder">조사 결과를 기다리는 중…</div>
             </div>
             <div class="approval-actions">
-              <button type="button" data-decision="승인" disabled>승인</button>
-              <button type="button" data-decision="수정 요청" disabled>수정</button>
-              <button type="button" data-decision="보류" disabled>보류</button>
-              <button type="button" data-decision="폐기" disabled>폐기</button>
+              <button type="button" data-decision="승인" disabled>심화노트 작성</button>
+              <button type="button" data-decision="보류" disabled>나중에</button>
+              <button type="button" data-decision="폐기" disabled>추천 닫기</button>
             </div>
             <div class="vault-notes" id="vault-notes"></div>
           </div>
 
-          <p class="approval-only-note">승인하면 선택한 1건만 작성팀으로 넘어가요. 수정은 검수팀으로 돌려보내고, 보류·폐기는 오늘 작업을 멈춥니다.</p>
+          <p class="approval-only-note">심화노트 선택은 TOP 10 리포트와 별개예요. 나중에·추천 닫기를 눌러도 다른 업무와 추가 지시는 계속됩니다.</p>
         </section>
 
-        <section class="panel roster-panel">
-          <div class="panel-heading small">
-            <div>
-              <p class="eyebrow">31 STAFF + CEO</p>
-              <h2>직원 상태</h2>
-            </div>
-            <span class="people-count" id="people-count">32</span>
-          </div>
-          <div class="roster-filters" id="roster-filters" aria-label="직원 상태 필터"></div>
-          <div class="roster-list" id="roster-list"></div>
-        </section>
       </aside>
       </div>
     </main>
@@ -214,9 +263,9 @@
         <span id="popover-status"></span>
       </div>
       <div class="popover-approval" id="popover-approval" hidden>
-        <b id="popover-approval-rank">TOP 1 승인 요청</b>
+        <b id="popover-approval-rank">심화노트 추천</b>
         <p id="popover-approval-title"></p>
-        <button type="button" id="popover-approve">이 안건 승인</button>
+        <button type="button" id="popover-approve">이 항목 심화 작성</button>
         <button type="button" id="popover-open-console">콘솔에서 자세히</button>
       </div>
     </div>

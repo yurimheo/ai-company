@@ -203,10 +203,10 @@ const STEPS = [
   { title: "각 10개 조사", icon: "✎", clock: "08:00", description: "VMware 이슈 10개와 AI 트렌드 10개를 공식·지정 출처에서 찾아요." },
   { title: "브랜드 분석", icon: "◉", clock: "09:40", description: "페르소나 적합성을 확인해요. 통계 미연동은 근거 없이 채우지 않아요." },
   { title: "검수", icon: "✓", clock: "10:30", description: "브랜드 기준, 출처, 제품 버전, 실행 검증 여부를 전수 검사해요." },
-  { title: "TOP 3", icon: "★", clock: "11:30", description: "검수 통과안 가운데 TOP 3만 대표에게 올려요." },
-  { title: "대표 승인", icon: "!", clock: "11:40", description: "대표가 승인·수정·보류·폐기 중 하나를 결정할 때까지 멈춰요.", approval: true },
-  { title: "기술노트 작성", icon: "⌨", clock: "13:00", description: "승인된 1개만 기술노트와 카드뉴스 요약으로 작성해요." },
-  { title: "콘텐츠 정리", icon: "▤", clock: "15:00", description: "Obsidian 노트와 카드뉴스 포맷으로 정리해요." },
+  { title: "TOP 10 완성", icon: "★", clock: "11:30", description: "두 팀의 10개 전체 리포트를 빠짐없이 완성해요." },
+  { title: "대표 열람", icon: "☕", clock: "11:40", description: "대표는 TOP 10 전체를 읽어요. 심화노트 선택은 선택 사항이라 업무가 멈추지 않아요." },
+  { title: "리포트 요약", icon: "⌨", clock: "13:00", description: "각 10개 항목의 결론과 오늘 할 행동을 읽기 좋게 정리해요." },
+  { title: "콘텐츠 정리", icon: "▤", clock: "15:00", description: "팀별 TOP 10 리포트를 Obsidian 포맷으로 정리해요." },
   { title: "결과물 저장", icon: "▣", clock: "16:00", description: "원본을 건드리지 않고 지정 폴더에 결과물을 저장해요." },
   { title: "성과 기록", icon: "↗", clock: "17:00", description: "연동된 지표만 기록하고 다음 기획 반영점을 남겨요." },
   { title: "비서실 브리핑", icon: "☕", clock: "17:30", description: "완료·진행·승인 대기·막힌 것·결정할 것을 5줄로 보고해요." },
@@ -622,6 +622,7 @@ let autoAdvanceTimer = null;
 let dialogueTimer = null;
 let companyState = null;
 let selectedCandidateId = null;
+let selectedReportTeam = "trend";
 let attendanceComplete = false;
 let localBridge = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 const manualWorkTimers = new Map();
@@ -794,10 +795,10 @@ function clearAutoAdvance() {
 
 function scheduleAutoAdvance() {
   clearAutoAdvance();
-  if (!day.started || day.step === 3 || day.step === 7 || day.step >= 12) return;
+  if (!day.started || day.step === 3 || day.step >= 12) return;
   const delay = day.step === 6 ? 12_000 : [5, 9, 10].includes(day.step) ? 5200 : 3600;
   autoAdvanceTimer = window.setTimeout(() => {
-    if (!day.started || day.step === 7 || day.step >= 12) return;
+    if (!day.started || day.step >= 12) return;
     applyStage(day.step + 1);
   }, delay);
 }
@@ -1178,12 +1179,12 @@ function drawApprovalBang(context, person, cx, cy, now) {
   context.font = "900 28px ui-monospace";
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText("!", x, y - 1);
+  context.fillText("★", x, y - 1);
   context.fillStyle = "#fffaf0";
   context.fillRect(x + 10, y - 23, 18, 11);
   context.fillStyle = "#8b3958";
   context.font = "900 8px ui-monospace";
-  context.fillText(`T${person.pendingCandidateRank}`, x + 19, y - 17);
+  context.fillText(`R${person.pendingCandidateRank}`, x + 19, y - 17);
   context.restore();
 }
 
@@ -1316,56 +1317,20 @@ function applyStage(step) {
     );
     setTeamStatus("brand", "완료");
     setTeamStatus("qa", "진행 중", { home: true });
-    showDialogue(team("qa")[0], "링크·게시일·공식 출처를 확인한 뒤 TOP 3만 올릴게요.");
+    showDialogue(team("qa")[0], "링크·게시일·공식 출처를 확인해서 두 팀의 10개 전체를 보고서로 올릴게요.");
     brief("검수팀이 출처·버전·실행 검증·금칙어를 전수 검사 중이에요.");
     logActivity("VMware팀과 IT트렌드팀 결과를 검수팀에 전달했어요.");
   } else if (step === 6) {
     setTeamStatus("qa", "완료");
-    runMeeting(team("qa"), "검수팀 TOP 3 선정", false);
-    brief("검수 통과안 가운데 TOP 3를 정리했어요. 곧 대표 승인 대기로 전환할게요.");
-    logActivity("검수팀이 TOP 3를 선정했어요.");
+    showDialogue(team("qa")[0], "AI 트렌드 10개와 VMware 이슈 10개, 전부 검수해서 보고서에 담았어요.");
+    brief("두 팀의 TOP 10 전체 리포트가 완성됐어요. 심화노트 추천은 별도 선택 사항이에요.");
+    logActivity("AI 트렌드 TOP 10과 VMware 이슈 10개 전체 리포트를 완성했어요.");
   } else if (step === 7) {
     if (companyState) renderCompanyState(companyState);
-    const pendingApproval = [
-      "approval_pending",
-      "revision_requested",
-      "writer_failed",
-    ].includes(companyState?.status);
-    if (!pendingApproval) {
-      clearPendingApprovals();
-      if (companyState?.status === "approved") {
-        brief("오늘 승인 기록이 있지만 이 화면에서는 승인 버튼 입력을 확인하지 못했어요. 자동으로 다음 단계로 넘기지 않습니다.");
-        logActivity("승인 기록을 발견했지만 사용자 입력 확인 전 자동 진행을 차단했어요.");
-      } else {
-        day.decision = companyState?.decision || null;
-        brief(
-          ["held", "discarded"].includes(companyState?.status)
-            ? `오늘 안건은 ${companyState.decision} 상태예요. TOP 3는 닫혀 있습니다.`
-            : "검수된 TOP 3가 준비되지 않아 승인 단계에서 멈췄어요.",
-        );
-      }
-      logActivity("대표 승인 상태를 오늘 기록과 동기화했어요.");
-      refreshStageUI();
-      refreshStatusUI();
-      return;
-    }
-    const attendees = approvalOwners();
-    attendees.forEach((person) => {
-      setStatus(person, "승인 대기", { animation: "sit" });
-      routeHome(person);
-    });
     setStatus(team("ceo")[0], "대기", { home: true });
-    const topCandidate = companyState?.approvalCandidates?.[0];
-    const approvalMessage = topCandidate
-      ? `20개를 전수 평가했어요. TOP 1은 ${topCandidate.score}점의 “${topCandidate.title}”이고, 오늘 행동은 “${topCandidate.practicalAction}”입니다.`
-      : "20개 전수 평가가 끝나면 점수 근거와 오늘 행동이 포함된 TOP 3만 올릴게요.";
-    showDialogue(attendees[0] || team("qa")[0], approvalMessage, 5600);
-    brief(
-      topCandidate
-        ? "TOP 3 결재 브리프가 준비됐어요. 결론·오늘 행동·버전·점수·남은 확인사항을 읽고 한 건만 결정해 주세요."
-        : "편집회의 결과를 기다리고 있어요. 검수된 TOP 3가 오기 전에는 승인할 수 없습니다.",
-    );
-    logActivity("대표 승인 대기. AI 파이프라인을 멈췄어요.");
+    showDialogue(team("secretary")[0], "대표님, AI 트렌드 10개부터 펼쳐뒀어요. 긴 기술노트가 필요한 건만 나중에 골라도 돼요.", 5600);
+    brief("오늘의 전체 리포트를 열었어요. 읽는 동안에도 직원들은 다음 정리 업무를 계속합니다.");
+    logActivity("대표에게 팀별 TOP 10 전체 리포트를 전달했어요.");
   } else if (step === 8) {
     clearPendingApprovals();
     activePeople.concat(team("qa")).forEach((person) => {
@@ -1374,8 +1339,8 @@ function applyStage(step) {
       routeHome(person);
     });
     setTeamStatus("writer", "진행 중", { home: true });
-    brief("승인된 1개만 기술노트로 작성 중이에요.");
-    logActivity("기술노트 작성팀이 승인안 집필을 시작했어요.");
+    brief("기술노트 작성팀이 두 보고서의 20개 결론과 오늘 할 행동을 다듬고 있어요.");
+    logActivity("TOP 10 리포트 요약 정리를 시작했어요.");
   } else if (step === 9) {
     handoff("writer", "format", "format");
     brief("콘텐츠 정리팀이 Obsidian 원고와 카드뉴스 포맷을 구성 중이에요.");
@@ -1392,7 +1357,7 @@ function applyStage(step) {
   } else if (step === 12) {
     setTeamStatus("secretary", "진행 중", { home: true });
     window.setTimeout(() => setTeamStatus("secretary", "완료"), 1800);
-    brief("오늘 완료: 원고 준비. 승인 처리: 완료. 막힌 것: 게시 성과 미연동. 다음 대표 결정은 없어요.");
+    brief("오늘 완료: AI 트렌드 10개와 VMware 이슈 10개 저장. 심화노트는 선택 사항이고 추가 업무는 언제든 보낼 수 있어요.");
     logActivity("비서실 최종 브리핑이 도착했어요.");
     day.finished = true;
   }
@@ -1415,10 +1380,6 @@ function startDay() {
 function nextStep() {
   if (!day.started) return;
   clearAutoAdvance();
-  if (day.step === 7 && !day.decision) {
-    brief("대표 승인 전에는 기술노트 작성으로 넘어갈 수 없어요.");
-    return;
-  }
   if (day.step >= 12) {
     day.started = false;
     day.finished = false;
@@ -1435,19 +1396,14 @@ function nextStep() {
 }
 
 async function handleDecision(decision) {
-  if (day.step !== 7) {
-    brief("현재는 대표 승인 단계가 아니에요.");
-    return;
-  }
   if (!selectedCandidateId) {
-    brief("결정할 TOP 3 안건을 먼저 선택해 주세요.");
+    brief("심화해서 작성할 추천 항목을 먼저 선택해 주세요.");
     return;
   }
 
   document.querySelectorAll("[data-decision]").forEach((button) => {
     button.disabled = true;
   });
-  day.decision = decision;
   const candidate = companyState?.approvalCandidates?.find(
     (item) => item.id === selectedCandidateId,
   );
@@ -1458,10 +1414,10 @@ async function handleDecision(decision) {
     try {
       if (decision === "승인") {
         brief(
-          `“${candidate?.title}” 원문을 다시 읽고 있어요. 기술노트 작성팀이 초안·검증 체크리스트·카드뉴스 문구까지 작성합니다.`,
+          `“${candidate?.title}”을 선택형 심화노트로 작성할게요. TOP 10 일일 리포트는 이미 모두 저장돼 있습니다.`,
         );
         document.getElementById("approval-summary").textContent =
-          "승인안 집필 중 · 원문 대조와 구조화가 끝날 때까지 잠시만 기다려 주세요.";
+          "심화노트 작성 중 · 일일 TOP 10 업무는 멈추지 않고 계속됩니다.";
       } else {
         brief(`${decision} 결정을 기록하고 후속 팀에 전달하고 있어요.`);
       }
@@ -1476,19 +1432,17 @@ async function handleDecision(decision) {
       }
       companyState = await response.json();
       renderCompanyState(companyState);
-      logActivity("대표 결정을 03_성과기록 폴더에 저장했어요.");
-      if (companyState.status === "writer_failed") {
-        day.decision = null;
+      logActivity("심화노트 선택 기록을 03_성과기록 폴더에 저장했어요.");
+      if (companyState.deepDiveStatus === "writer_failed") {
         const reason =
           companyState.errors?.at(-1) || "기술노트 작성 결과를 검증하지 못했어요.";
-        brief(`승인은 기록했지만 초안은 만들지 못했어요. 자동 진행을 멈췄습니다: ${reason}`);
+        brief(`TOP 10 리포트는 완료됐지만 선택형 심화노트는 만들지 못했어요: ${reason}`);
         logActivity(`기술노트 작성 실패: ${reason}`);
         refreshStageUI();
         saveOfficeSession();
         return;
       }
     } catch (error) {
-      day.decision = null;
       brief(`옵시디언 기록에 실패했어요: ${error.message}`);
       refreshStageUI();
       return;
@@ -1496,18 +1450,15 @@ async function handleDecision(decision) {
   }
 
   if (decision === "승인") {
-    brief("승인 처리했어요. 기술노트 작성팀으로 넘깁니다.");
-    applyStage(8);
+    brief("선택한 항목의 심화노트를 저장했어요. 다른 직원들은 원래 업무를 계속합니다.");
   } else if (decision === "수정 요청") {
-    day.decision = null;
     clearPendingApprovals();
     pendingOwnersBeforeDecision.forEach((person) => {
       person.animation = null;
       setStatus(person, "대기");
       routeHome(person);
     });
-    brief("수정 요청을 검수팀에 전달했어요. 수정 후 TOP 3를 다시 올릴게요.");
-    applyStage(5);
+    brief("추천을 다시 검토해 달라고 검수팀에 전달했어요. TOP 10 리포트는 그대로 유지됩니다.");
   } else if (decision === "보류") {
     clearPendingApprovals();
     pendingOwnersBeforeDecision.forEach((person) => {
@@ -1515,32 +1466,210 @@ async function handleDecision(decision) {
       routeHome(person);
     });
     selectedCandidateId = null;
-    brief("보류로 기록했어요. TOP 3는 닫았고 오늘 파이프라인은 여기서 멈춥니다.");
+    brief("심화노트 추천을 나중에 보기로 했어요. 오늘 업무와 추가 지시는 계속됩니다.");
     refreshStageUI();
     saveOfficeSession();
   } else if (decision === "폐기") {
     clearPendingApprovals();
     selectedCandidateId = null;
-    clearAutoAdvance();
-    day.started = false;
-    day.step = 0;
-    resetStatuses();
-    returnEveryoneHome();
-    brief("오늘 안은 폐기했고 결정 기록은 옵시디언에 남겼어요.");
+    brief("심화노트 추천만 닫았어요. TOP 10 리포트와 진행 중인 업무는 그대로예요.");
     refreshStageUI();
     saveOfficeSession();
   }
 }
 
+function renderDailyReports(state) {
+  const reports = state?.dailyReports || { vmware: [], trend: [] };
+  const allCount = (reports.vmware?.length || 0) + (reports.trend?.length || 0);
+  document.getElementById("report-count").textContent = `${allCount} / 20`;
+  document.querySelectorAll("[data-report-team]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.reportTeam === selectedReportTeam);
+    button.setAttribute(
+      "aria-selected",
+      String(button.dataset.reportTeam === selectedReportTeam),
+    );
+  });
+
+  const container = document.getElementById("report-items");
+  container.replaceChildren();
+  const items = reports[selectedReportTeam] || [];
+  if (!items.length) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "report-placeholder";
+    placeholder.textContent =
+      state?.status === "researching"
+        ? "직원들이 공식 자료를 읽고 있어요. 10개가 모두 준비되면 한꺼번에 열립니다."
+        : "이전 방식으로 만든 오늘 기록에는 전체 목록이 없어요. 새 리서치부터 TOP 10 전체가 표시됩니다.";
+    container.append(placeholder);
+    return;
+  }
+
+  items.forEach((item) => {
+    const details = document.createElement("details");
+    details.className = "report-item";
+    const summary = document.createElement("summary");
+    const rank = document.createElement("b");
+    rank.textContent = String(item.rank).padStart(2, "0");
+    const copy = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = item.title;
+    const meta = document.createElement("small");
+    meta.textContent = `${item.source} · ${item.score}/100 · ${item.qaStatus}`;
+    copy.append(title, meta);
+    const arrow = document.createElement("i");
+    arrow.textContent = "＋";
+    summary.append(rank, copy, arrow);
+
+    const body = document.createElement("div");
+    body.className = "report-item-body";
+    [
+      ["한 줄 결론", item.summary],
+      ["왜 지금", item.whyNow],
+      ["오늘 할 행동", item.practicalAction],
+      ["제품·버전", item.productVersion],
+    ].forEach(([label, value]) => {
+      if (!value) return;
+      const row = document.createElement("p");
+      const rowLabel = document.createElement("b");
+      const rowValue = document.createElement("span");
+      rowLabel.textContent = label;
+      rowValue.textContent = value;
+      row.append(rowLabel, rowValue);
+      body.append(row);
+    });
+    const link = document.createElement("a");
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = "원문 열기 ↗";
+    body.append(link);
+    details.append(summary, body);
+    container.append(details);
+  });
+}
+
+function renderManualTasks(tasks = []) {
+  const container = document.getElementById("task-queue");
+  container.replaceChildren();
+  if (!tasks.length) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "task-placeholder";
+    placeholder.textContent = "추가 업무가 생기면 여기에 진행·완료 상태가 보여요.";
+    container.append(placeholder);
+    return;
+  }
+  tasks.slice(0, 5).forEach((task) => {
+    const item = document.createElement("article");
+    item.className = `task-item ${task.status === "완료" ? "complete" : task.status === "실패" ? "failed" : "working"}`;
+    const top = document.createElement("div");
+    const teamName = document.createElement("b");
+    teamName.textContent = task.team;
+    const status = document.createElement("span");
+    status.textContent = task.status;
+    top.append(teamName, status);
+    const title = document.createElement("strong");
+    title.textContent = task.title || task.task;
+    const summary = document.createElement("p");
+    summary.textContent = task.summary || "직원들이 산출물을 작성하고 있어요.";
+    item.append(top, title, summary);
+    if (task.note) {
+      const note = document.createElement("small");
+      note.textContent = `↳ ${task.note}`;
+      item.append(note);
+    }
+    container.append(item);
+  });
+}
+
+async function dispatchTask() {
+  const teamId = document.getElementById("task-team").value;
+  const taskInput = document.getElementById("task-text");
+  const task = taskInput.value.trim();
+  const submit = document.getElementById("task-submit");
+  const status = document.getElementById("task-status");
+  const department = DEPARTMENTS[teamId];
+  if (!task) {
+    brief("시킬 업무 내용을 먼저 적어 주세요.");
+    taskInput.focus();
+    return;
+  }
+  if (!localBridge) {
+    brief("실제 산출물과 옵시디언 기록은 run-local.command로 연 로컬 콘솔에서 사용할 수 있어요.");
+    return;
+  }
+
+  submit.disabled = true;
+  status.textContent = "작업 중";
+  const members = team(teamId);
+  members.forEach((person) => {
+    person.animation = null;
+    setStatus(person, "진행 중");
+    routeHome(person, () => {
+      person.animation = "type";
+    });
+  });
+  showDialogue(members[0], `좋아요 대표님! “${task.slice(0, 34)}${task.length > 34 ? "…" : ""}” 바로 맡을게요.`, 4600);
+  brief(`${department.name}이 지시를 접수했어요. 실제 결과 Markdown을 만드는 중입니다.`);
+  logActivity(`${department.name} 추가 업무 시작: ${task}`);
+
+  const optimisticTask = {
+    id: `pending-${Date.now()}`,
+    teamId,
+    team: department.name,
+    task,
+    status: "진행 중",
+  };
+  renderManualTasks([optimisticTask, ...(companyState?.manualTasks || [])]);
+
+  try {
+    const response = await fetch("/api/task", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamId, task }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+    companyState = payload.state;
+    renderCompanyState(companyState);
+    taskInput.value = "";
+    status.textContent = payload.task.status;
+    members.forEach((person) => {
+      person.animation = null;
+      setStatus(person, payload.task.status === "완료" ? "완료" : "대기");
+    });
+    const leader = members[0];
+    showDialogue(
+      leader,
+      payload.task.status === "완료"
+        ? `대표님, “${payload.task.title}” 완료했어요. 결과는 옵시디언에 남겼어요!`
+        : `대표님, 지시는 기록했지만 산출물 생성 중 문제가 생겼어요. 기록에서 확인해 주세요.`,
+      5600,
+    );
+    brief(`${department.name} 추가 업무 ${payload.task.status} · ${payload.task.note}`);
+    logActivity(`${department.name} 추가 업무 ${payload.task.status}: ${payload.task.note}`);
+  } catch (error) {
+    status.textContent = "오류";
+    members.forEach((person) => {
+      person.animation = null;
+      setStatus(person, "대기");
+    });
+    brief(`추가 업무 처리에 실패했어요: ${error.message}`);
+  } finally {
+    submit.disabled = false;
+    refreshStatusUI();
+  }
+}
+
 function renderCompanyState(state) {
   companyState = state;
+  renderDailyReports(state);
+  renderManualTasks(state?.manualTasks || []);
   const storedCandidates = state?.approvalCandidates || [];
   const approvalStageVisible =
     attendanceComplete &&
-    day.step === 7 &&
-    ["approval_pending", "revision_requested", "writer_failed"].includes(
-      state?.status,
-    );
+    day.step >= 6 &&
+    storedCandidates.length > 0 &&
+    !["approved", "held", "discarded"].includes(state?.deepDiveStatus);
   const candidates = approvalStageVisible ? storedCandidates : [];
   if (approvalStageVisible) assignPendingApprovals(candidates);
   else clearPendingApprovals();
@@ -1552,24 +1681,24 @@ function renderCompanyState(state) {
     placeholder.className = "candidate-placeholder";
     if (!attendanceComplete) {
       placeholder.textContent =
-        "전 직원이 자리에 도착한 뒤 조사·검수 순서에 맞춰 TOP 3를 공개해요.";
-    } else if (day.step > 0 && day.step < 7 && storedCandidates.length) {
+        "전 직원이 자리에 도착한 뒤 TOP 10 전체 리포트와 선택형 추천을 공개해요.";
+    } else if (day.step > 0 && day.step < 6 && storedCandidates.length) {
       placeholder.textContent =
-        `현재 ${STEPS[day.step - 1].title} 단계예요. TOP 3는 대표 승인 단계에서만 열립니다.`;
+        `현재 ${STEPS[day.step - 1].title} 단계예요. 전체 리포트 검수가 끝나면 선택형 추천도 열립니다.`;
     } else if (state?.status === "researching") {
       placeholder.textContent = `현재 ${state.phase || "공식 소스 조사"} 중이에요…`;
     } else if (state?.status === "editorial_failed") {
-      placeholder.textContent = `편집회의가 검수 기준을 통과하지 못해 TOP 3를 올리지 않았어요. ${state.errors?.at(-1) || ""}`;
-    } else if (state?.status === "writer_failed") {
-      placeholder.textContent = `승인안 집필이 검증 단계에서 멈췄어요. ${state.errors?.at(-1) || ""}`;
-    } else if (state?.status === "approved") {
-      placeholder.textContent = `승인 완료 · “${state.selectedCandidate?.title || "선택 안건"}”을 후속 팀에 전달했어요.`;
-    } else if (state?.status === "held") {
-      placeholder.textContent = `보류 완료 · “${state.selectedCandidate?.title || "선택 안건"}”을 닫고 오늘 파이프라인을 멈췄어요.`;
-    } else if (state?.status === "discarded") {
-      placeholder.textContent = `폐기 완료 · “${state.selectedCandidate?.title || "선택 안건"}”을 TOP 3에서 제거했어요.`;
+      placeholder.textContent = `편집회의가 검수 기준을 통과하지 못했어요. ${state.errors?.at(-1) || ""}`;
+    } else if (state?.deepDiveStatus === "writer_failed") {
+      placeholder.textContent = `심화노트 작성이 검증 단계에서 멈췄어요. TOP 10 리포트는 정상 완료됐습니다.`;
+    } else if (state?.deepDiveStatus === "approved") {
+      placeholder.textContent = `심화노트 완료 · “${state.selectedCandidate?.title || "선택 항목"}”을 저장했어요.`;
+    } else if (state?.deepDiveStatus === "held") {
+      placeholder.textContent = "심화노트 추천은 나중에 보기로 했어요. 다른 업무는 계속됩니다.";
+    } else if (state?.deepDiveStatus === "discarded") {
+      placeholder.textContent = "선택형 추천만 닫았어요. TOP 10 전체 리포트는 그대로 남아 있습니다.";
     } else {
-      placeholder.textContent = "표시할 승인 후보가 아직 없어요.";
+      placeholder.textContent = "표시할 심화노트 추천이 아직 없어요.";
     }
     selectedCandidateId = null;
     container.append(placeholder);
@@ -1589,7 +1718,7 @@ function renderCompanyState(state) {
       input.addEventListener("change", () => {
         selectedCandidateId = candidate.id;
         document.getElementById("approval-summary").textContent =
-          `선택: ${candidate.team} ${index + 1}번 · 이 안건에 대한 결정을 기록합니다.`;
+          `선택: ${candidate.team} 추천 ${index + 1}번 · 원할 때만 긴 심화노트로 작성할 수 있어요.`;
       });
       const copy = document.createElement("label");
       copy.htmlFor = input.id;
@@ -1597,7 +1726,7 @@ function renderCompanyState(state) {
       topline.className = "candidate-topline";
       const rank = document.createElement("span");
       rank.className = "candidate-rank";
-      rank.textContent = `TOP ${candidate.selectionRank || index + 1}`;
+      rank.textContent = `추천 ${candidate.selectionRank || index + 1}`;
       const teamName = document.createElement("span");
       teamName.className = "candidate-team";
       teamName.textContent = candidate.team;
@@ -1639,7 +1768,7 @@ function renderCompanyState(state) {
       qa.textContent = `검수 통과 · ${candidate.reason}`;
       const verification = document.createElement("p");
       verification.className = "candidate-verification";
-      verification.textContent = `승인 후 확인 · ${candidate.verificationNeeded}`;
+      verification.textContent = `심화 작성 전 확인 · ${candidate.verificationNeeded}`;
       const source = document.createElement("small");
       source.className = "candidate-source";
       source.textContent = `${candidate.source} · ${candidate.published}`;
@@ -1711,30 +1840,30 @@ function renderCompanyState(state) {
   document.getElementById("trend-output").textContent = outputReady
     ? trendOutput || "오늘 수집 결과를 작성 중이에요."
     : "조사 단계가 끝나면 오늘 파일을 공개해요.";
-  if (state?.status === "writer_failed") {
+  if (state?.deepDiveStatus === "writer_failed") {
     document.getElementById("approval-summary").textContent =
-      "집필 실패 · 불완전한 초안을 저장하지 않고 승인 단계에서 멈췄습니다.";
+      "심화노트만 작성에 실패했어요. 두 팀의 TOP 10 전체 리포트와 다른 업무는 정상 완료됐습니다.";
   } else if (state?.status === "editorial_failed") {
     document.getElementById("approval-summary").textContent =
       "검수 실패 · 어설픈 후보를 대신 올리지 않고 편집회의를 멈췄습니다.";
-  } else if (state?.status === "held") {
+  } else if (state?.deepDiveStatus === "held") {
     document.getElementById("approval-summary").textContent =
-      "보류 완료 · TOP 3를 닫고 오늘 파이프라인을 멈췄습니다.";
-  } else if (state?.status === "discarded") {
+      "나중에 보기로 했어요. TOP 10 리포트와 추가 업무는 계속됩니다.";
+  } else if (state?.deepDiveStatus === "discarded") {
     document.getElementById("approval-summary").textContent =
-      "폐기 완료 · TOP 3를 화면과 상태에서 제거했습니다.";
-  } else if (state?.status === "approved") {
+      "선택형 추천만 닫았어요. TOP 10 전체 리포트는 그대로 남아 있습니다.";
+  } else if (state?.deepDiveStatus === "approved") {
     document.getElementById("approval-summary").textContent =
-      "승인 완료 · 선택 안건을 기술노트 작성팀에 전달했습니다.";
+      "선택한 항목의 심화노트를 저장했어요. 일일 리포트는 20개 전체가 별도로 유지됩니다.";
   } else if (candidates.length) {
     document.getElementById("approval-summary").textContent =
-      `20개 전수 평가 → 검수 통과 TOP ${candidates.length} · 한 안건만 결정하면 후속 작성은 직원들이 처리합니다.`;
+      `TOP 10 두 편은 이미 완료 · 아래 ${candidates.length}개는 더 깊게 읽고 싶을 때만 고르는 추천입니다.`;
   } else if (!attendanceComplete) {
     document.getElementById("approval-summary").textContent =
-      "전 직원 출근 완료 후 업무 순서에 맞춰 TOP 3를 공개합니다.";
-  } else if (day.step < 7) {
+      "전 직원 출근 완료 후 TOP 10 전체 리포트를 먼저 공개합니다.";
+  } else if (day.step < 6) {
     document.getElementById("approval-summary").textContent =
-      "아직 승인 단계가 아니에요. 직원들이 현재 단계의 일을 처리 중입니다.";
+      "현재 전체 리포트를 만드는 중이에요. 심화노트 선택은 나중에 해도 됩니다.";
   }
   refreshStageUI();
 }
@@ -1746,8 +1875,14 @@ async function connectVaultAndResearch() {
     chip.classList.add("offline");
     chip.innerHTML = "<i></i> PAGES 데모";
     document.getElementById("approval-summary").textContent =
-      "GitHub Pages는 로컬 파일을 쓸 수 없어요. run-local.command로 연 로컬 콘솔에서 실제 조사·승인을 사용할 수 있습니다.";
-    renderCompanyState({ status: "public_demo", approvalCandidates: [], notes: [] });
+      "GitHub Pages는 로컬 파일을 쓸 수 없어요. run-local.command로 연 콘솔에서 실제 조사·심화노트·추가 업무를 사용할 수 있습니다.";
+    renderCompanyState({
+      status: "public_demo",
+      approvalCandidates: [],
+      dailyReports: { vmware: [], trend: [] },
+      manualTasks: [],
+      notes: [],
+    });
     return;
   }
 
@@ -1841,34 +1976,10 @@ function restoreOfficeSession(saved) {
   day.started = saved.started !== false;
   day.finished = Boolean(saved.finished);
   day.decision = saved.decision || null;
-  let restoredStep = Math.max(1, Math.min(12, Number(saved.step) || 1));
-  const pendingStatus = [
-    "approval_pending",
-    "revision_requested",
-    "writer_failed",
-  ].includes(companyState?.status);
-
-  if (pendingStatus && restoredStep >= 7) {
-    restoredStep = 7;
-    day.decision = null;
-    day.finished = false;
-  } else if (["held", "discarded"].includes(companyState?.status)) {
-    restoredStep = 7;
-    day.decision = companyState.decision || saved.decision || null;
-  } else if (
-    companyState?.status === "approved" &&
-    saved.decision === "승인" &&
-    restoredStep < 8
-  ) {
-    restoredStep = 8;
-  }
+  const restoredStep = Math.max(1, Math.min(12, Number(saved.step) || 1));
 
   applyStage(restoredStep);
-  brief(
-    restoredStep === 7 && !day.decision
-      ? "새로고침 전 상태를 복원했어요. 대표님이 결정할 때까지 승인 단계에서 그대로 기다립니다."
-      : `새로고침 전 오늘 업무 ${restoredStep}단계를 복원했어요. 출근부터 다시 시작하지 않습니다.`,
-  );
+  brief(`새로고침 전 오늘 업무 ${restoredStep}단계를 복원했어요. 출근부터 다시 시작하지 않습니다.`);
   logActivity(`오늘 업무 ${restoredStep}단계를 복원했어요.`);
 }
 
@@ -2090,26 +2201,21 @@ function restoreConversationLog(notes = []) {
 
 function refreshStageUI() {
   const current = day.step ? STEPS[day.step - 1] : null;
-  const held = day.step === 7 && day.decision === "보류";
   document.getElementById("step-badge").textContent = current ? `${day.step} / 12` : "준비";
   document.getElementById("stage-icon").textContent = current?.icon || "☀";
-  document.getElementById("stage-title").textContent = held
-    ? "대표 보류"
-    : current?.title || "자동 출근을 준비하고 있어요";
+  document.getElementById("stage-title").textContent =
+    current?.title || "자동 출근을 준비하고 있어요";
   document.getElementById("stage-description").textContent =
-    held
-      ? "TOP 3를 닫고 오늘 파이프라인을 보류 상태로 멈췄어요."
-      : current?.description || "페이지를 열면 전원이 출근하고 아침 조사를 자동으로 시작해요.";
+    current?.description || "페이지를 열면 전원이 출근하고 아침 조사를 자동으로 시작해요.";
   document.getElementById("office-clock").textContent = current?.clock || "07:00";
   document.getElementById("office-state").textContent =
-    held
-      ? "대표 보류"
-      : day.step === 7 && !day.decision
-        ? "대표 승인 대기"
-        : day.finished
-          ? "오늘 업무 완료"
-          : current?.title || "업무 준비";
-  document.getElementById("clock-dot").classList.toggle("waiting", day.step === 7 && !day.decision);
+    day.finished
+      ? "오늘 업무 완료"
+      : current?.title || "업무 준비";
+  document.getElementById("clock-dot").classList.toggle(
+    "waiting",
+    companyState?.manualTasks?.some((task) => task.status === "진행 중"),
+  );
 
   document.querySelectorAll("#pipeline li").forEach((item, index) => {
     item.classList.toggle("done", day.step > index + 1);
@@ -2118,12 +2224,10 @@ function refreshStageUI() {
 
   const approvalReady =
     attendanceComplete &&
-    day.step === 7 &&
+    day.step >= 6 &&
     Boolean(companyState?.approvalCandidates?.length) &&
-    ["approval_pending", "revision_requested", "writer_failed"].includes(
-      companyState?.status,
-    ) &&
-    (localBridge || companyState?.status === "public_demo");
+    !["approved", "held", "discarded"].includes(companyState?.deepDiveStatus) &&
+    localBridge;
   document.getElementById("approval-box").classList.toggle("ready", approvalReady);
   document.querySelectorAll("[data-decision]").forEach((button) => {
     button.disabled = !approvalReady;
@@ -2189,7 +2293,7 @@ function showPerson(person, event = null) {
   approvalPanel.hidden = !approval;
   if (approval) {
     document.getElementById("popover-approval-rank").textContent =
-      `TOP ${approval.selectionRank} · ${approval.team} 승인 요청`;
+      `추천 ${approval.selectionRank} · ${approval.team} 심화노트`;
     document.getElementById("popover-approval-title").textContent = approval.title;
   }
   const left = event
@@ -2246,6 +2350,19 @@ function setupUI() {
 
   document.querySelectorAll("[data-decision]").forEach((button) => {
     button.addEventListener("click", () => handleDecision(button.dataset.decision));
+  });
+  document.querySelectorAll("[data-report-team]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedReportTeam = button.dataset.reportTeam;
+      renderDailyReports(companyState);
+    });
+  });
+  document.getElementById("task-submit").addEventListener("click", dispatchTask);
+  document.getElementById("task-text").addEventListener("keydown", (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      event.preventDefault();
+      dispatchTask();
+    }
   });
   document.querySelector(".popover-close").addEventListener("click", closePopover);
   document.getElementById("popover-approve").addEventListener("click", () => {

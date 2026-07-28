@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "summary", "deliverable", "actions", "openQuestions"],
+  "properties": {
+    "title": { "type": "string" },
+    "summary": { "type": "string" },
+    "deliverable": { "type": "string" },
+    "actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "openQuestions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

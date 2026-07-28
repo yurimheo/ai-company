@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   readCompanyState,
   recordDecision,
+  runAssignedTask,
   runMorningResearch,
   vaultInfo,
 } from "./research.mjs";
@@ -73,6 +74,10 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "POST" && url.pathname === "/api/approval") {
       sendJson(response, 200, await recordDecision(await readJson(request)));
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/task") {
+      sendJson(response, 200, await runAssignedTask(await readJson(request)));
       return;
     }
     await serveStatic(request, response);
