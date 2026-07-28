@@ -142,52 +142,52 @@ const TEAM_ALIASES = Object.fromEntries(
 
 const ROSTER = {
   vmware: [
-    ["코끼리 브이스피어", "팀장", "VMware 조사 총괄"],
-    ["코끼리 릴리즈", "팀원", "VKS·Automation 릴리즈 추적"],
+    ["코끼리 브이", "팀장", "VMware 조사 총괄"],
+    ["코끼리 릴리", "팀원", "VKS·Automation 릴리즈 추적"],
     ["코끼리 패치", "팀원", "vSphere 버그·패치 조사"],
   ],
   k8s: [
-    ["돌고래 헬름", "팀장", "Kubernetes 업무 설계"],
-    ["돌고래 릴리즈", "팀원", "공식 릴리즈·CNCF 추적"],
-    ["돌고래 매니페스트", "팀원", "매니페스트·명령어 검증"],
+    ["돌고래 헬미", "팀장", "Kubernetes 업무 설계"],
+    ["돌고래 니모", "팀원", "공식 릴리즈·CNCF 추적"],
+    ["돌고래 소나", "팀원", "매니페스트·명령어 검증"],
   ],
   linux: [
-    ["펭귄 턱스", "팀장", "Tux"],
-    ["펭귄 커널", "팀원", "배포판·커널 릴리즈 추적"],
-    ["펭귄 쉘", "팀원", "CLI 명령어 검증"],
+    ["펭귄 턱스", "팀장", "Linux 업무 설계"],
+    ["펭귄 커니", "팀원", "배포판·커널 릴리즈 추적"],
+    ["펭귄 셸리", "팀원", "CLI 명령어 검증"],
   ],
   trend: [
     ["여우 레이더", "팀장", "AI 트렌드 조사 총괄"],
-    ["여우 클라우드", "팀원", "인프라·클라우드 동향 수집"],
-    ["여우 시그널", "팀원", "실무 적용 신호 도출"],
+    ["여우 구름", "팀원", "인프라·클라우드 동향 수집"],
+    ["여우 클루", "팀원", "실무 적용 신호 도출"],
   ],
   brand: [
-    ["올빼미 인사이트", "팀장", "브랜드 분석 총괄"],
-    ["올빼미 메트릭", "팀원", "지표 분석"],
-    ["올빼미 페르소나", "팀원", "독자 적합성 검증"],
+    ["올빼미 세이지", "팀장", "브랜드 분석 총괄"],
+    ["올빼미 메티", "팀원", "지표 분석"],
+    ["올빼미 미러", "팀원", "독자 적합성 검증"],
   ],
   qa: [
-    ["미어캣 게이트", "팀장", "검수 기준 관리"],
-    ["미어캣 소스", "팀원", "출처·버전 검사"],
-    ["미어캣 톤", "팀원", "톤·금칙어 검수"],
+    ["미어캣 보초", "팀장", "검수 기준 관리"],
+    ["미어캣 스캔", "팀원", "출처·버전 검사"],
+    ["미어캣 토니", "팀원", "톤·금칙어 검수"],
   ],
   writer: [
-    ["비버 드래프트", "팀장", "기술노트 집필 총괄"],
-    ["비버 팩트", "팀원", "기술 검증"],
-    ["비버 문장", "팀원", "문장·구조 다듬기"],
+    ["비버 빌더", "팀장", "기술노트 집필 총괄"],
+    ["비버 로그", "팀원", "기술 검증"],
+    ["비버 라인", "팀원", "문장·구조 다듬기"],
   ],
   format: [
-    ["다람쥐 포맷", "팀장", "콘텐츠 정리 총괄"],
-    ["다람쥐 마크다운", "팀원", "텍스트·노트 포맷팅"],
+    ["다람쥐 정돈", "팀장", "콘텐츠 정리 총괄"],
+    ["다람쥐 페이지", "팀원", "텍스트·노트 포맷팅"],
     ["다람쥐 카드", "팀원", "카드뉴스·표지"],
   ],
   review: [
-    ["거북이 리뷰", "팀장", "성과 리뷰 총괄"],
-    ["거북이 지표", "팀원", "성과 지표 수집"],
-    ["거북이 패턴", "팀원", "반복 패턴 정리"],
+    ["거북이 사려", "팀장", "성과 리뷰 총괄"],
+    ["거북이 넘버", "팀원", "성과 지표 수집"],
+    ["거북이 루프", "팀원", "반복 패턴 정리"],
   ],
   auto: [
-    ["개미 크론", "팀장", "자동화 일정 관리"],
+    ["개미 리트라이", "팀장", "자동화 일정 관리"],
     ["개미 워치", "팀원", "모니터링"],
   ],
   secretary: [
@@ -655,7 +655,8 @@ function saveOfficeSession() {
         step: day.step,
         decision: day.decision,
         finished: day.finished,
-        meetingNotes: meetingNotes.slice(0, 20),
+        meetingNotes: meetingNotes.slice(-20),
+        chatVersion: 3,
         serverStatus: companyState?.status || null,
         decidedAt: companyState?.decidedAt || null,
       }),
@@ -803,80 +804,85 @@ function scheduleAutoAdvance() {
 
 const TEAM_MEETING_LINES = {
   vmware: [
-    "오늘은 William Lam과 Broadcom 새 글을 먼저 나눠볼게요. 제품 버전과 게시일이 없는 글은 후보에서 제외하고, 운영자가 바로 확인할 수 있는 이슈만 남겨요.",
-    "VKS와 Automation 릴리스에서 업그레이드 경로, 알려진 문제, 필요한 빌드 번호를 표로 묶을게요. 같은 이슈를 반복 소개한 글은 한 건으로 합치겠습니다.",
-    "vSphere와 VCF 쪽은 증상·영향 범위·즉시 확인할 항목까지 적고 공식 원문 링크를 붙일게요. 재현 여부가 불명확하면 반드시 확인 필요로 표시하겠습니다.",
+    "아… 잠깐! William Lam 새 글 봤어요? {mate1} 대리, 버전 바뀌는 부분부터 같이 봐요.",
+    "{lead} 팀장님, 여기 찾았어요! 단순 소식이 아니라 실제 업그레이드 체크가 필요해요. 이건 오늘 안건으로 올리면 좋겠어요.",
+    "저도 찬성! 그럼 저는 네트워크 조건이랑 확인할 버전을 콕콕 표시할게요. 대표님이 바로 판단할 수 있게요.",
   ],
   k8s: [
-    "아직 정기 업무는 미정이지만, 맡게 되면 릴리스 노트와 운영 영향부터 분리해 볼게요.",
-    "CNCF와 공식 프로젝트 릴리스에서 deprecated API와 업그레이드 주의점을 추적할 수 있어요.",
-    "매니페스트와 명령어는 실제 실행 전제 조건을 함께 적어야 안전해요.",
+    "{mate1} 대리, 우리 정기 업무가 생기면 뭐부터 보고 싶어요? 저는 릴리스 노트가 제일 궁금해요.",
+    "저는 deprecated API요! 조용히 사라지는 기능을 먼저 잡아두면 운영팀이 덜 놀랄 것 같아요.",
+    "그럼 저는 매니페스트를 볼게요. 두 분이 찾은 내용을 실제 명령어로 확인하면 딱 맞겠네요!",
   ],
   linux: [
-    "아직 정기 업무는 미정이에요. 배포판과 커널 보안 공지 중심으로 범위를 정하면 바로 시작할 수 있어요.",
-    "커널·배포판 릴리스는 지원 기간과 영향 패키지를 함께 정리하겠습니다.",
-    "CLI 예시는 배포판과 권한 조건까지 확인한 뒤 공유할게요.",
+    "{mate1} 대리, 오늘은 커널 공지 구경해 볼까요? 아직 정식 업무는 아니니까 살짝만요.",
+    "좋아요, {lead} 팀장님! 지원 기간이랑 영향 패키지를 같이 보면 나중에 바로 쓸 수 있겠어요.",
+    "저는 명령어 예시를 챙길게요. 배포판이 다르면 결과도 다르니까 조건까지 꼭 붙여둘게요!",
   ],
   trend: [
-    "OpenAI·Google AI·NVIDIA·AWS·CNCF 공식 채널을 나눠 볼게요. 단순 출시 소식보다 오늘 업무 방식을 바꿀 수 있는 신호를 우선해요.",
-    "클라우드와 인프라 흐름은 비용·보안·운영 복잡도에 어떤 변화가 생기는지 한 줄씩 붙이겠습니다.",
-    "각 후보마다 ‘그래서 오늘 무엇을 해볼지’를 적을게요. 출처가 겹치거나 실무 행동이 없는 소식은 TOP 후보에서 내리겠습니다.",
+    "오늘 공식 피드가 꽤 북적하네요. {mate1} 대리, 반짝이는 소식 말고 진짜 쓸모 있는 것부터 골라볼까요?",
+    "{lead} 팀장님, 이거 봐요! 출시 소식으로 끝나는 게 아니라 비용이랑 일하는 방식이 달라질 수 있겠어요.",
+    "오, 저도 한 표요! 그럼 ‘그래서 오늘 뭘 해볼지’까지 붙여서 안건으로 올릴게요.",
   ],
   brand: [
-    "20개 후보가 우리 독자에게 정말 필요한지부터 볼게요. 제목만 자극적이고 저장 가치가 낮으면 점수를 주지 않겠습니다.",
-    "근거와 지표가 실제 출처에 있는지 확인하고, 숫자를 추정해서 채우지 않겠습니다.",
-    "인프라 실무자가 읽자마자 자기 환경을 점검할 수 있는지 페르소나 기준으로 보겠습니다.",
+    "후보가 스무 개나 왔네요! {mate1} 대리, 제목만 반짝이는 글은 살짝 옆으로 빼둘까요?",
+    "네, {lead} 팀장님. 숫자가 진짜 원문에 있는지 제가 하나씩 콕콕 확인해 볼게요.",
+    "저는 독자 입장에서 읽어볼게요. 읽고 바로 자기 환경을 점검할 수 있으면 좋은 안건이에요!",
   ],
   qa: [
-    "후보마다 공식 원문·게시일·제품 버전을 다시 맞춰볼게요. 하나라도 근거가 흐리면 대표님께 올리지 않겠습니다.",
-    "명령어와 설정값은 실행 전제와 확인할 항목을 분리해 적겠습니다. 확인하지 않은 내용은 검증 완료처럼 쓰지 않아요.",
-    "제목·요약·카드 문구의 과장 표현을 걷어내고, 대표님이 판단할 핵심 행동이 한눈에 보이도록 정리하겠습니다.",
+    "자, 돋보기 켰습니다! {mate1} 대리, 링크랑 버전부터 부탁해요. 저는 허술한 안건이 슬쩍 못 지나가게 문 앞을 지킬게요.",
+    "{lead} 팀장님, 공식 원문 확인했어요. 다만 아직 확인할 부분에는 노란 딱지를 붙여둘게요.",
+    "문장도 다듬었어요! 겁주거나 과장하지 않고, 대표님이 오늘 할 행동이 먼저 보이게 했어요.",
   ],
   writer: [
-    "승인된 한 건만 원문 구조와 분리해 기술노트로 다시 쓰겠습니다.",
-    "제품 버전·전제 조건·검증할 항목을 체크리스트로 만들게요.",
-    "결론이 먼저 보이도록 문단을 다듬고 중복 설명을 줄이겠습니다.",
+    "승인 도착했어요! {mate1} 대리, 원문 옆에 두고 우리 말로 차근차근 풀어볼까요?",
+    "좋아요. 제품 버전이랑 전제 조건은 제가 체크박스로 단단히 묶어둘게요.",
+    "그럼 저는 첫 문단을 맡을게요. 대표님이 결론부터 쏙 볼 수 있게 다듬겠습니다!",
   ],
   format: [
-    "기술노트의 제목·요약·본문 계층을 Obsidian에서 읽기 좋게 맞출게요.",
-    "표와 체크리스트가 깨지지 않도록 마크다운 구조를 정돈하겠습니다.",
-    "카드뉴스는 한 장에 한 메시지만 남기고 출처를 빠뜨리지 않을게요.",
+    "원고 왔어요! {mate1} 대리, Obsidian에서 목차가 예쁘게 보이도록 같이 정리해요.",
+    "네! 표랑 체크리스트가 삐뚤어지지 않게 마크다운 줄부터 맞춰둘게요.",
+    "카드는 제가 맡을래요. 한 장에 한 메시지만 넣고 출처도 꼬리표처럼 꼭 붙일게요!",
   ],
   review: [
-    "게시 결과가 연결되기 전에는 성과 숫자를 추정하지 않겠습니다.",
-    "연결된 지표만 같은 기준으로 모아 비교할게요.",
-    "반복해서 저장되거나 반려되는 주제를 다음 기획 기준으로 정리하겠습니다.",
+    "{mate1} 대리, 아직 게시 지표가 안 왔으니 숫자는 상상해서 쓰면 안 돼요. 우리 천천히 기다려요.",
+    "네, {lead} 팀장님. 연결된 지표만 같은 바구니에 모아둘게요.",
+    "저는 반복해서 저장되거나 반려되는 주제를 살펴볼게요. 다음 기획에 은근히 도움이 될 거예요!",
   ],
   auto: [
-    "정해진 시간에 조사 파일이 생성되는지 확인하고 실패 시 재시도 기준을 남기겠습니다.",
-    "파일 경로와 상태 변화를 감시하고, 이상이 있으면 대표 콘솔에 먼저 알릴게요.",
+    "{mate1} 대리, 오늘 파일들 제시간에 도착했나요? 저는 재시도 시계를 맞춰둘게요.",
+    "네, {lead} 팀장님! 경로도 멀쩡해요. 이상이 생기면 대표 콘솔에 먼저 똑똑 노크할게요.",
   ],
   secretary: [
-    "완료·진행·막힌 일·대표 결정 항목을 섞지 않고 짧게 보고드릴게요.",
-    "회의에서 나온 결정과 담당자를 회의록에 남겨 다음 팀이 바로 이어받게 하겠습니다.",
+    "{mate1} 대리, 오늘 보고는 완료·진행·막힌 일 순서로 깔끔하게 묶어볼까요?",
+    "네, {lead} 실장님! 대신 직원들 귀여운 대화도 한 줄씩 챙겨둘래요. 대표님이 보면 기분 좋게요!",
   ],
 };
+
+function cuteName(person) {
+  return person?.name?.split(" ").slice(1).join(" ") || person?.name || "동료";
+}
 
 function meetingLine(person, departmentId, leadersMeeting = false) {
   const department = DEPARTMENTS[departmentId];
   const topCandidate = companyState?.approvalCandidates?.[0];
-  if (departmentId === "qa" && topCandidate) {
-    if (person.detail.includes("출처")) {
-      return `${topCandidate.source} 원문과 ${topCandidate.productVersion || "제품·버전"}을 확인했어요. 남은 확인은 ${topCandidate.verificationNeeded}`;
-    }
-    if (person.detail.includes("톤")) {
-      return `대표님이 판단할 핵심 행동은 “${topCandidate.practicalAction}”이에요. ${topCandidate.contentAngle}로 기획했어요.`;
-    }
-    return `TOP 1은 ${topCandidate.score}점의 “${topCandidate.title}”이에요. 선정 근거는 ${topCandidate.reason}`;
+  const members = team(departmentId);
+  const memberIndex = Math.max(0, members.indexOf(person));
+  if (departmentId === "qa" && topCandidate && memberIndex === 1) {
+    return `${cuteName(members[0])} 팀장님, ${topCandidate.source} 공식 원문이랑 제품 버전 확인했어요. 다만 “${topCandidate.verificationNeeded}”는 노란 확인 딱지를 붙여둘게요.`;
+  }
+  if (departmentId === "qa" && topCandidate && memberIndex === 2) {
+    return `저도 문장 다듬었어요! “${topCandidate.practicalAction}”이 대표님 눈에 먼저 보이게 하고, 과장된 표현은 살짝 걷어냈어요.`;
   }
   if (leadersMeeting) {
-    return `${department.short}은 현재 ${person.status} 상태예요. ${person.detail} 기준으로 다음 행동을 준비할게요.`;
+    return `${department.short}은 지금 ${person.status}이에요. 다음 차례가 오면 ${person.detail}부터 챙길게요. 다른 팀도 막힌 건 없죠?`;
   }
-  const memberIndex = Math.max(0, team(departmentId).indexOf(person));
-  return (
+  const template =
     TEAM_MEETING_LINES[departmentId]?.[memberIndex] ||
-    `${person.detail} 업무의 확인 기준과 다음 행동을 회의록에 남기겠습니다.`
-  );
+    `${person.detail}은 제가 맡을게요. 끝나면 다 같이 간식 먹으면서 한 번 더 확인해요!`;
+  return template
+    .replaceAll("{lead}", cuteName(members[0]))
+    .replaceAll("{mate1}", cuteName(members[1]))
+    .replaceAll("{mate2}", cuteName(members[2]));
 }
 
 function runMeeting(group, label, leadersMeeting = false) {
@@ -896,7 +902,7 @@ function runMeeting(group, label, leadersMeeting = false) {
   const startConversation = () => {
     if (startedTalking) return;
     startedTalking = true;
-    brief(`${label} 회의를 시작해요. 한 명씩 순서대로 보고합니다.`);
+    brief(`${label} 회의를 시작했어요. 말풍선을 따라가면 팀원들이 서로 이야기하는 걸 볼 수 있어요.`);
     group.forEach((person, index) => {
       window.setTimeout(() => {
         group.forEach((member) => {
@@ -905,7 +911,7 @@ function runMeeting(group, label, leadersMeeting = false) {
         const line = meetingLine(person, person.departmentId, leadersMeeting);
         showDialogue(person, line, 2400);
         brief(`${person.name}: “${line}”`);
-        logActivity(`${person.name} 보고: ${line}`);
+        logActivity(`${person.name}의 한마디: ${line}`);
         logConversation(label, person, line);
       }, index * 2600);
     });
@@ -1815,7 +1821,10 @@ function restoreOfficeSession(saved) {
   clearAutoAdvance();
   attendanceComplete = true;
   putEveryoneAtHome();
-  meetingNotes = Array.isArray(saved.meetingNotes) ? saved.meetingNotes : [];
+  meetingNotes =
+    saved.chatVersion === 3 && Array.isArray(saved.meetingNotes)
+      ? saved.meetingNotes
+      : [];
   restoreConversationLog(meetingNotes);
 
   day.started = saved.started !== false;
@@ -2029,9 +2038,10 @@ function logConversation(meetingLabel, person, message) {
   line.textContent = message;
   copy.append(speaker, meta, line);
   item.append(avatar, copy);
-  transcript.prepend(item);
-  while (transcript.children.length > 20) transcript.lastElementChild.remove();
-  meetingNotes.unshift({
+  transcript.append(item);
+  while (transcript.children.length > 20) transcript.firstElementChild.remove();
+  transcript.scrollTop = transcript.scrollHeight;
+  meetingNotes.push({
     meetingLabel,
     personId: person.id,
     personName: person.name,
@@ -2040,7 +2050,7 @@ function logConversation(meetingLabel, person, message) {
     clock: document.getElementById("office-clock").textContent,
     message,
   });
-  meetingNotes = meetingNotes.slice(0, 20);
+  meetingNotes = meetingNotes.slice(-20);
   saveOfficeSession();
 }
 
@@ -2048,7 +2058,7 @@ function restoreConversationLog(notes = []) {
   const transcript = document.getElementById("meeting-transcript");
   if (!notes.length) return;
   transcript.replaceChildren();
-  notes.slice(0, 20).forEach((note) => {
+  notes.slice(-20).forEach((note) => {
     const item = document.createElement("li");
     const avatar = document.createElement("span");
     avatar.className = `staff-icon species-${note.species}`;
@@ -2225,6 +2235,15 @@ function setupUI() {
 
   document.querySelectorAll("[data-decision]").forEach((button) => {
     button.addEventListener("click", () => handleDecision(button.dataset.decision));
+  });
+  document.querySelectorAll("[data-team-meeting]").forEach((button) => {
+    button.addEventListener("click", () => {
+      callTeamMeeting(button.dataset.teamMeeting);
+      document.querySelector(".brief-panel").scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
   });
   document.querySelector(".popover-close").addEventListener("click", closePopover);
   document.getElementById("popover-approve").addEventListener("click", () => {

@@ -116,12 +116,12 @@
           <div class="transcript-heading">
             <span class="staff-icon species-dog" aria-hidden="true"></span>
             <div>
-              <p class="eyebrow">MEETING MINUTES</p>
-              <h3>노트 멍대리의 회의록 한입</h3>
+              <p class="eyebrow">TEAM CHAT</p>
+              <h3>노트 멍대리의 회의실 톡톡</h3>
             </div>
           </div>
           <ol class="meeting-transcript" id="meeting-transcript" aria-live="polite">
-            <li class="transcript-empty">회의가 열리면 팀원들의 실제 보고 내용을 차곡차곡 적어둘게요.</li>
+            <li class="transcript-empty">회의가 열리면 동물 직원들이 서로 이름을 부르며 조잘조잘 이야기해요.</li>
           </ol>
         </section>
         </div>
@@ -140,12 +140,18 @@
             <div class="operation-row active">
               <span class="operation-avatar staff-icon species-elephant" aria-hidden="true"></span>
               <div><strong>VMware팀</strong><small>William Lam · Broadcom/VMware 최신 이슈 10개</small></div>
-              <b id="vmware-job-state">출근 중</b>
+              <div class="operation-actions">
+                <b id="vmware-job-state">출근 중</b>
+                <button type="button" data-team-meeting="vmware">회의실 톡톡</button>
+              </div>
             </div>
             <div class="operation-row active">
               <span class="operation-avatar staff-icon species-fox" aria-hidden="true"></span>
               <div><strong>IT트렌드팀</strong><small>공식 AI 소스 최신 트렌드 10개</small></div>
-              <b id="trend-job-state">출근 중</b>
+              <div class="operation-actions">
+                <b id="trend-job-state">출근 중</b>
+                <button type="button" data-team-meeting="trend">회의실 톡톡</button>
+              </div>
             </div>
             <div class="operation-row dormant">
               <span class="operation-avatar staff-icon species-dolphin" aria-hidden="true"></span>
@@ -171,6 +177,10 @@
               <strong>대표 승인</strong>
               <p id="approval-summary">직원들이 조사하고 있어요. TOP 3가 도착하면 정확한 안건을 보여드릴게요.</p>
             </div>
+            <div class="approval-purpose">
+              <b>왜 대표님이 고르나요?</b>
+              <p>직원들이 20개를 조사·검수해 TOP 3까지 줄였어요. 대표 승인은 그중 <strong>오늘 회사가 실제 기술노트로 만들 1건</strong>을 정하는 마지막 우선순위 결정이에요.</p>
+            </div>
             <div class="approval-candidates" id="approval-candidates" aria-live="polite">
               <div class="candidate-placeholder">조사 결과를 기다리는 중…</div>
             </div>
@@ -183,7 +193,7 @@
             <div class="vault-notes" id="vault-notes"></div>
           </div>
 
-          <p class="approval-only-note">대표님은 조사 결과를 읽고 승인 단계에서만 결정하면 돼요. 나머지는 직원들이 이어서 처리합니다.</p>
+          <p class="approval-only-note">승인하면 선택한 1건만 작성팀으로 넘어가요. 수정은 검수팀으로 돌려보내고, 보류·폐기는 오늘 작업을 멈춥니다.</p>
         </section>
 
         <section class="panel roster-panel">

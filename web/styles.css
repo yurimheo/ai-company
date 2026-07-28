@@ -790,6 +790,30 @@ h2 {
   white-space: nowrap;
 }
 
+.operation-actions {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.operation-actions button {
+  padding: 4px 6px;
+  color: #785369;
+  background: #fff0f5;
+  border: 1px solid #d59ab0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: "Galmuri9", sans-serif;
+  font-size: 8px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.operation-actions button:hover {
+  color: #fff;
+  background: #c76086;
+}
+
 .operation-row.dormant {
   opacity: 0.72;
 }
@@ -1180,11 +1204,37 @@ select {
   font-size: 12px;
 }
 
-.approval-box p {
+.approval-box > div:first-child p {
   grid-column: 2;
   margin: 2px 0 0;
   color: var(--ink-soft);
   font-size: 10px;
+}
+
+.approval-purpose {
+  margin: 9px 0 3px;
+  padding: 9px 10px;
+  color: #655349;
+  background: #fff8e8;
+  border: 1px dashed #c9aa72;
+  border-radius: 8px;
+}
+
+.approval-purpose b {
+  display: block;
+  color: var(--sage-dark);
+  font-size: 9px;
+}
+
+.approval-purpose p {
+  margin: 4px 0 0;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.approval-purpose strong {
+  color: #9c4e6b;
+  font-size: inherit;
 }
 
 .approval-light {
@@ -1374,14 +1424,13 @@ input {
 }
 
 .meeting-transcript li {
-  padding: 9px;
+  padding: 0;
   display: grid;
   grid-template-columns: 38px 1fr;
   gap: 8px;
   color: var(--ink-soft);
-  background: #fffaf0;
-  border: 1px solid #ddc598;
-  border-radius: 9px;
+  background: transparent;
+  border: 0;
 }
 
 .meeting-transcript .staff-icon {
@@ -1398,6 +1447,19 @@ input {
   display: block;
 }
 
+.transcript-copy {
+  position: relative;
+  padding: 8px 10px;
+  background: #fffaf0;
+  border: 1px solid #ddc598;
+  border-radius: 4px 12px 12px;
+}
+
+.meeting-transcript li:nth-child(even) .transcript-copy {
+  background: #f3f7e9;
+  border-color: #b9c99f;
+}
+
 .transcript-copy b {
   color: #5b493f;
   font-size: 10px;
@@ -1411,14 +1473,18 @@ input {
 }
 
 .transcript-copy span {
-  font-size: 10px;
-  line-height: 1.6;
+  color: #5c4d46;
+  font-size: 11px;
+  line-height: 1.7;
 }
 
 .meeting-transcript .transcript-empty {
+  padding: 10px;
   display: block;
   color: #8b786c;
   background: #f6ecd8;
+  border: 1px dashed #d8bd8c;
+  border-radius: 9px;
   border-style: dashed;
   font-size: 9px;
   line-height: 1.6;
