@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="31명의 동물 직원과 사람 대표가 함께 일하는 YURIM AI COMPANY 픽셀 오피스 콘솔"
+    />
+    <meta name="theme-color" content="#f6dcae" />
+    <meta property="og:title" content="YURIM AI COMPANY · Pixel Office" />
+    <meta
+      property="og:description"
+      content="버튼으로 하루 업무를 지시하고, 동물 직원들의 상태와 이동을 확인하는 귀여운 픽셀 오피스"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="./og.png" />
+    <title>YURIM AI COMPANY · Pixel Office</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="sky-ribbon" aria-hidden="true">
+      <span class="cloud cloud-a"></span>
+      <span class="cloud cloud-b"></span>
+      <span class="cloud cloud-c"></span>
+    </div>
+
+    <header class="topbar">
+      <div class="brand-lockup">
+        <span class="brand-sprout" aria-hidden="true">✦</span>
+        <div>
+          <p class="eyebrow">YURIM AI COMPANY</p>
+          <h1>오늘도 차근차근, 픽셀 오피스</h1>
+        </div>
+      </div>
+      <div class="clock-card" aria-label="회사 현재 상태">
+        <span class="clock-dot" id="clock-dot"></span>
+        <div>
+          <strong id="office-clock">07:00</strong>
+          <span id="office-state">업무 준비</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section class="office-column" aria-labelledby="map-title">
+        <div class="panel map-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">LIVE FLOOR MAP</p>
+              <h2 id="map-title">사무실 지도</h2>
+              <p>방과 가구는 통과할 수 없고, 직원들은 A*로 서로를 피해 이동해요.</p>
+            </div>
+            <div class="map-tools" aria-label="지도 도구">
+              <button class="icon-button" id="zoom-out" type="button" aria-label="지도 축소">−</button>
+              <span id="zoom-label">100%</span>
+              <button class="icon-button" id="zoom-in" type="button" aria-label="지도 확대">＋</button>
+              <button class="soft-button compact" id="zoom-fit" type="button">화면 맞춤</button>
+            </div>
+          </div>
+
+          <div class="map-viewport" id="map-viewport">
+            <div class="map-stage" id="map-stage">
+              <canvas id="office-map" aria-label="YURIM AI COMPANY 타일 사무실 지도"></canvas>
+              <canvas id="office-people" aria-label="직원 위치와 애니메이션"></canvas>
+            </div>
+          </div>
+
+          <div class="map-footer">
+            <div class="status-legend" id="status-legend" aria-label="직원 상태 범례"></div>
+            <p class="map-hint"><span aria-hidden="true">☝</span> 직원을 누르면 상세 상태를 볼 수 있어요.</p>
+          </div>
+        </div>
+
+        <div class="panel timeline-panel">
+          <div class="panel-heading small">
+            <div>
+              <p class="eyebrow">12-STEP DAY</p>
+              <h2>오늘의 업무 순서</h2>
+            </div>
+            <strong class="step-badge" id="step-badge">준비</strong>
+          </div>
+          <ol class="pipeline" id="pipeline" aria-label="하루 12단계 파이프라인"></ol>
+          <div class="stage-detail">
+            <div class="stage-icon" id="stage-icon" aria-hidden="true">☀</div>
+            <div>
+              <strong id="stage-title">대표의 지시를 기다리고 있어요</strong>
+              <p id="stage-description">도메인을 고르고 ‘오늘 업무 시작’을 눌러주세요.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="console-column" aria-label="대표 업무 콘솔">
+        <section class="panel command-panel">
+          <div class="console-title">
+            <div>
+              <p class="eyebrow">CEO CONSOLE</p>
+              <h2>대표 지시창</h2>
+            </div>
+            <span class="live-chip"><i></i> LOCAL</span>
+          </div>
+
+          <label class="field-label" for="domain-select">오늘의 도메인팀</label>
+          <div class="select-wrap">
+            <select id="domain-select">
+              <option value="vmware">🐘 VMware팀</option>
+              <option value="k8s">🐬 Kubernetes팀</option>
+              <option value="linux">🐧 Linux팀</option>
+              <option value="trend">🦊 IT트렌드팀</option>
+            </select>
+          </div>
+
+          <div class="primary-actions">
+            <button class="pixel-button primary" id="start-day" type="button">
+              <span aria-hidden="true">▶</span> 오늘 업무 시작
+            </button>
+            <button class="pixel-button" id="next-step" type="button" disabled>
+              다음 단계
+            </button>
+          </div>
+
+          <div class="quick-grid">
+            <button class="soft-button" id="status-report" type="button">현황 보고</button>
+            <button class="soft-button" id="bottleneck" type="button">왜 늦어져?</button>
+            <button class="soft-button" id="meeting-call" type="button">회의 소집</button>
+            <button class="soft-button" id="focus-mode" type="button">집중 모드</button>
+          </div>
+
+          <div class="approval-box" id="approval-box">
+            <div>
+              <span class="approval-light"></span>
+              <strong>대표 승인</strong>
+              <p>TOP 3 도착 전에는 결재할 수 없어요.</p>
+            </div>
+            <div class="approval-actions">
+              <button type="button" data-decision="승인" disabled>승인</button>
+              <button type="button" data-decision="수정 요청" disabled>수정</button>
+              <button type="button" data-decision="보류" disabled>보류</button>
+              <button type="button" data-decision="폐기" disabled>폐기</button>
+            </div>
+          </div>
+
+          <form class="command-form" id="command-form">
+            <label class="field-label" for="command-input">직접 지시</label>
+            <div class="command-input-row">
+              <input
+                id="command-input"
+                type="text"
+                autocomplete="off"
+                placeholder="예: 회의 소집, VMware팀 뭐해?"
+              />
+              <button class="send-button" type="submit" aria-label="지시 실행">↵</button>
+            </div>
+            <p class="field-help">사규의 대표 지시문을 로컬 명령으로 인식해요.</p>
+          </form>
+        </section>
+
+        <section class="panel brief-panel">
+          <div class="panel-heading small">
+            <div>
+              <p class="eyebrow">SECRETARY LOG</p>
+              <h2>강아지 브리프의 보고</h2>
+            </div>
+            <button class="text-button" id="clear-log" type="button">기록 정리</button>
+          </div>
+          <div class="secretary-message">
+            <span class="secretary-avatar" aria-hidden="true">🐶</span>
+            <p id="secretary-bubble">전 직원 31명과 대표님이 업무 준비 중이에요.</p>
+          </div>
+          <ol class="activity-log" id="activity-log" aria-live="polite"></ol>
+        </section>
+
+        <section class="panel roster-panel">
+          <div class="panel-heading small">
+            <div>
+              <p class="eyebrow">31 STAFF + CEO</p>
+              <h2>직원 상태</h2>
+            </div>
+            <span class="people-count" id="people-count">32</span>
+          </div>
+          <div class="roster-filters" id="roster-filters" aria-label="직원 상태 필터"></div>
+          <div class="roster-list" id="roster-list"></div>
+        </section>
+      </aside>
+    </main>
+
+    <div class="person-popover" id="person-popover" hidden>
+      <button type="button" class="popover-close" aria-label="직원 상세 닫기">×</button>
+      <span class="popover-avatar" id="popover-avatar"></span>
+      <div>
+        <strong id="popover-name"></strong>
+        <p id="popover-role"></p>
+        <span id="popover-status"></span>
+      </div>
+    </div>
+
+    <noscript>이 사무실 콘솔은 JavaScript가 필요합니다.</noscript>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
