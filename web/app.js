@@ -181,9 +181,9 @@ const ROSTER = {
 };
 
 const STEPS = [
-  { title: "전원 출근", icon: "☀", clock: "07:00", description: "31명의 직원과 대표가 각자 자리에서 하루를 준비해요." },
-  { title: "도메인 지정", icon: "⌁", clock: "07:10", description: "대표가 오늘 가동할 도메인팀 1곳을 지정해요." },
-  { title: "리서치·아이디어", icon: "✎", clock: "08:00", description: "공식 출처에서 소재 5개를 찾고 아이디어 10개를 만들어요." },
+  { title: "전원 출근", icon: "☀", clock: "07:00", description: "31명의 직원과 대표가 출입구부터 각자 자리까지 걸어가요." },
+  { title: "매일팀 가동", icon: "⌁", clock: "07:10", description: "VMware팀과 IT트렌드팀이 버튼 없이 매일 자동으로 시작해요." },
+  { title: "각 10개 조사", icon: "✎", clock: "08:00", description: "VMware 이슈 10개와 AI 트렌드 10개를 공식·지정 출처에서 찾아요." },
   { title: "브랜드 분석", icon: "◉", clock: "09:40", description: "페르소나 적합성을 확인해요. 통계 미연동은 근거 없이 채우지 않아요." },
   { title: "검수", icon: "✓", clock: "10:30", description: "브랜드 기준, 출처, 제품 버전, 실행 검증 여부를 전수 검사해요." },
   { title: "TOP 3", icon: "★", clock: "11:30", description: "검수 통과안 가운데 TOP 3만 대표에게 올려요." },
@@ -528,7 +528,7 @@ function drawTile(x, y, type) {
 function drawRoomSigns() {
   mapContext.textAlign = "center";
   mapContext.textBaseline = "middle";
-  mapContext.font = '100 10px "A2z", "Galmuri9", sans-serif';
+  mapContext.font = '700 10px "A2z", "Galmuri9", sans-serif';
   for (const room of allRooms) {
     const signY = room.facing === "down" ? room.y * TILE + 2 : (room.y + room.h - 1) * TILE + 20;
     const signX = (room.x + room.w / 2) * TILE;
@@ -581,6 +581,8 @@ for (const [departmentId, entries] of Object.entries(ROSTER)) {
       selected: false,
       screen: { x: 0, y: 0 },
       paletteIndex: personCounter % 6,
+      visible: false,
+      speech: "",
     });
     personCounter += 1;
   });
@@ -589,7 +591,6 @@ for (const [departmentId, entries] of Object.entries(ROSTER)) {
 const day = {
   started: false,
   step: 0,
-  domain: "vmware",
   decision: null,
   focus: false,
   finished: false,
@@ -599,10 +600,18 @@ let zoom = 1;
 let selectedPerson = null;
 let rosterFilter = "전체";
 let autoAdvanceTimer = null;
+let dialogueTimer = null;
+let companyState = null;
+let selectedCandidateId = null;
+let localBridge = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 const manualWorkTimers = new Map();
 
 function occupiedTiles(excludeId) {
-  return new Set(people.filter((person) => person.id !== excludeId).map((person) => tileKey(person.tile.x, person.tile.y)));
+  return new Set(
+    people
+      .filter((person) => person.visible && person.id !== excludeId)
+      .map((person) => tileKey(person.tile.x, person.tile.y)),
+  );
 }
 
 function freeDestination(room, preferred, excludeId) {
@@ -615,7 +624,9 @@ function freeDestination(room, preferred, excludeId) {
 
 function routePerson(person, destination, onArrival = null) {
   const occupied = occupiedTiles(person.id);
-  const path = findPath(grid, person.tile, destination, occupied);
+  const path =
+    findPath(grid, person.tile, destination, occupied) ||
+    findPath(grid, person.tile, destination, new Set());
   person.destination = { ...destination };
   person.path = path?.length > 1 ? path.slice(1) : [];
   person.waitTicks = 0;
@@ -682,7 +693,7 @@ function clearAutoAdvance() {
 function scheduleAutoAdvance() {
   clearAutoAdvance();
   if (!day.started || day.step === 7 || day.step >= 12) return;
-  const delay = [5, 6, 9, 10].includes(day.step) ? 5200 : 3600;
+  const delay = day.step === 6 ? 9000 : [5, 9, 10].includes(day.step) ? 5200 : 3600;
   autoAdvanceTimer = window.setTimeout(() => {
     if (!day.started || day.step === 7 || day.step >= 12) return;
     applyStage(day.step + 1);
@@ -724,6 +735,7 @@ function runMeeting(group, label, leadersMeeting = false) {
           member.animation = member === person ? "talk" : "sit";
         });
         const line = meetingLine(person, person.departmentId, leadersMeeting);
+        showDialogue(person, line, 1400);
         brief(`${person.name}: “${line}”`);
         logActivity(`${person.name} 보고: ${line}`);
       }, index * 1500);
@@ -789,8 +801,11 @@ function assignTeamWork(id) {
 }
 
 function moveTick() {
-  const occupied = new Set(people.map((person) => tileKey(person.tile.x, person.tile.y)));
+  const occupied = new Set(
+    people.filter((person) => person.visible).map((person) => tileKey(person.tile.x, person.tile.y)),
+  );
   for (const person of people) {
+    if (!person.visible) continue;
     if (!person.path.length) continue;
     const next = person.path[0];
     const nextKey = tileKey(next.x, next.y);
@@ -1015,6 +1030,7 @@ function personAnimation(person, now) {
 function drawPeople(now) {
   peopleContext.clearRect(0, 0, peopleCanvas.width, peopleCanvas.height);
   for (const person of people) {
+    if (!person.visible) continue;
     const progress = Math.min(1, Math.max(0, (now - person.moveStartedAt) / MOVE_MS));
     const from = person.previousTile || person.tile;
     const tileX = from.x + (person.tile.x - from.x) * progress;
@@ -1055,43 +1071,59 @@ function handoff(fromId, targetRoomId, nextTeamId) {
 function applyStage(step) {
   day.step = step;
   day.focus = false;
-  const active = day.domain;
-  const activeName = DEPARTMENTS[active].name;
+  const activeTeams = ["vmware", "trend"];
+  const activePeople = activeTeams.flatMap(team);
 
   if (step === 1) {
     resetStatuses();
     returnEveryoneHome();
-    brief("전원 출근 완료예요. 오늘 가동할 도메인팀을 확인할게요.");
+    brief("전원 출근 완료예요. 정해진 매일 업무를 자동으로 확인할게요.");
     logActivity("31명 직원과 대표가 출근했어요.");
   } else if (step === 2) {
-    setTeamStatus(active, "진행 중", { home: true });
-    brief(`오늘 도메인은 ${activeName}이에요. 공식 문서 기준으로 준비할게요.`);
-    logActivity(`${activeName}을 오늘의 도메인팀으로 지정했어요.`);
+    activeTeams.forEach((id) => setTeamStatus(id, "진행 중", { home: true }));
+    document.getElementById("vmware-job-state").textContent = "자동 조사";
+    document.getElementById("trend-job-state").textContent = "자동 조사";
+    showDialogue(team("vmware")[0], "William Lam과 Broadcom 공식 소스를 나눠 확인할게요.");
+    brief("VMware팀과 IT트렌드팀이 매일 업무를 자동으로 시작했어요.");
+    logActivity("VMware 이슈 조사와 AI 트렌드 조사를 자동 시작했어요.");
   } else if (step === 3) {
-    setTeamStatus(active, "진행 중", { home: true });
-    brief(`${activeName}이 소재 5개와 아이디어 10개를 조사 중이에요.`);
-    logActivity(`${activeName}: 공식 출처 리서치와 아이디어 생산 시작.`);
+    activeTeams.forEach((id) => setTeamStatus(id, "진행 중", { home: true }));
+    showDialogue(team("trend")[0], "AI 공식 소스에서 오늘의 트렌드 10개를 선별 중이에요.");
+    brief("VMware팀은 최신 이슈 10개, IT트렌드팀은 AI 트렌드 10개를 조사 중이에요.");
+    logActivity("각 팀이 10개씩 수집하고 출처·최신성을 확인 중이에요.");
   } else if (step === 4) {
-    setTeamStatus("brand", "연동 대기", { home: true });
-    brief("브랜드 분석팀은 계정 통계가 미연동이라 추정치를 만들지 않고 연동 대기로 기록했어요.");
-    logActivity("브랜드 분석팀: 조회수·저장수 미연동.");
+    setTeamStatus("brand", "진행 중", { home: true });
+    showDialogue(team("brand")[0], "두 팀의 20개 안건을 실무 가치와 중복 여부로 정리할게요.");
+    brief("브랜드 분석팀이 20개 안건의 중복과 실무 적용 가능성을 확인해요.");
+    logActivity("브랜드 분석팀이 후보의 우선순위를 정리 중이에요.");
   } else if (step === 5) {
-    handoff(active, "qa", "qa");
+    activeTeams.forEach((id) => setTeamStatus(id, "완료"));
+    sendPeopleToRoom(
+      [team("vmware")[0], team("trend")[0]],
+      "qa",
+      "완료",
+      "talk",
+      2600,
+    );
+    setTeamStatus("brand", "완료");
+    setTeamStatus("qa", "진행 중", { home: true });
+    showDialogue(team("qa")[0], "링크·게시일·공식 출처를 확인한 뒤 TOP 3만 올릴게요.");
     brief("검수팀이 출처·버전·실행 검증·금칙어를 전수 검사 중이에요.");
-    logActivity(`${activeName} 결과를 검수팀에 전달했어요.`);
+    logActivity("VMware팀과 IT트렌드팀 결과를 검수팀에 전달했어요.");
   } else if (step === 6) {
     setTeamStatus("qa", "완료");
-    sendPeopleToRoom(team("qa"), "meeting", "완료", "talk", 0);
+    runMeeting(team("qa"), "검수팀 TOP 3 선정", false);
     brief("검수 통과안 가운데 TOP 3를 정리했어요. 곧 대표 승인 대기로 전환할게요.");
     logActivity("검수팀이 TOP 3를 선정했어요.");
   } else if (step === 7) {
-    const attendees = [team(active)[0], ...team("qa")];
+    const attendees = [team("vmware")[0], team("trend")[0], team("qa")[0]];
     sendPeopleToRoom(attendees, "meeting", "승인 대기", "sit", 0);
     setStatus(team("ceo")[0], "대기", { home: true });
-    brief("원인은 하나예요 — 대표님 결재 대기입니다. TOP 3 중 1개를 결정해 주세요.");
+    showDialogue(team("qa")[0], "TOP 3와 선정 이유, 원문 링크를 올렸습니다. 대표님 결정만 기다릴게요.", 4200);
+    brief("TOP 3가 준비됐어요. 제목·출처·선정 이유를 확인하고 한 건을 결정해 주세요.");
     logActivity("대표 승인 대기. AI 파이프라인을 멈췄어요.");
   } else if (step === 8) {
-    team(active).concat(team("qa")).forEach((person) => {
+    activePeople.concat(team("qa")).forEach((person) => {
       person.animation = null;
       setStatus(person, "대기");
       routeHome(person);
@@ -1130,10 +1162,6 @@ function startDay() {
   day.started = true;
   day.finished = false;
   day.decision = null;
-  day.domain = document.getElementById("domain-select").value;
-  document.getElementById("domain-select").disabled = true;
-  document.getElementById("start-day").disabled = true;
-  document.getElementById("next-step").disabled = false;
   applyStage(1);
 }
 
@@ -1149,10 +1177,6 @@ function nextStep() {
     day.finished = false;
     day.step = 0;
     day.decision = null;
-    document.getElementById("domain-select").disabled = false;
-    document.getElementById("start-day").disabled = false;
-    document.getElementById("start-day").innerHTML =
-      '<span aria-hidden="true">▶</span> 오늘 업무 시작';
     resetStatuses();
     returnEveryoneHome();
     refreshStageUI();
@@ -1163,14 +1187,47 @@ function nextStep() {
   applyStage(day.step + 1);
 }
 
-function handleDecision(decision) {
+async function handleDecision(decision) {
   if (day.step !== 7) {
     brief("현재는 대표 승인 단계가 아니에요.");
     return;
   }
+  if (!selectedCandidateId) {
+    brief("결정할 TOP 3 안건을 먼저 선택해 주세요.");
+    return;
+  }
 
+  document.querySelectorAll("[data-decision]").forEach((button) => {
+    button.disabled = true;
+  });
   day.decision = decision;
-  logActivity(`대표 결정: ${decision}.`);
+  const candidate = companyState?.approvalCandidates?.find(
+    (item) => item.id === selectedCandidateId,
+  );
+  logActivity(`대표 결정: ${decision} · ${candidate?.title || selectedCandidateId}.`);
+
+  if (localBridge) {
+    try {
+      const response = await fetch("/api/approval", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision, candidateId: selectedCandidateId }),
+      });
+      if (!response.ok) {
+        const payload = await response.json();
+        throw new Error(payload.error || `HTTP ${response.status}`);
+      }
+      companyState = await response.json();
+      renderCompanyState(companyState);
+      logActivity("대표 결정을 03_성과기록 폴더에 저장했어요.");
+    } catch (error) {
+      day.decision = null;
+      brief(`옵시디언 기록에 실패했어요: ${error.message}`);
+      refreshStageUI();
+      return;
+    }
+  }
+
   if (decision === "승인") {
     brief("승인 처리했어요. 기술노트 작성팀으로 넘깁니다.");
     applyStage(8);
@@ -1187,11 +1244,161 @@ function handleDecision(decision) {
     day.step = 0;
     resetStatuses();
     returnEveryoneHome();
-    document.getElementById("domain-select").disabled = false;
-    document.getElementById("start-day").disabled = false;
-    brief("오늘 안은 폐기했어요. 새 업무일을 시작할 수 있어요.");
+    brief("오늘 안은 폐기했고 결정 기록은 옵시디언에 남겼어요.");
     refreshStageUI();
   }
+}
+
+function renderCompanyState(state) {
+  companyState = state;
+  const candidates = state?.approvalCandidates || [];
+  const container = document.getElementById("approval-candidates");
+  container.replaceChildren();
+
+  if (!candidates.length) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "candidate-placeholder";
+    placeholder.textContent =
+      state?.status === "researching"
+        ? "두 팀이 공식 소스를 조사하고 있어요…"
+        : "표시할 승인 후보가 아직 없어요.";
+    container.append(placeholder);
+  } else {
+    if (!candidates.some((candidate) => candidate.id === selectedCandidateId)) {
+      selectedCandidateId = candidates[0].id;
+    }
+    candidates.forEach((candidate, index) => {
+      const card = document.createElement("div");
+      card.className = "candidate-card";
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "approval-candidate";
+      input.value = candidate.id;
+      input.id = `candidate-${candidate.id}`;
+      input.checked = candidate.id === selectedCandidateId;
+      input.addEventListener("change", () => {
+        selectedCandidateId = candidate.id;
+        document.getElementById("approval-summary").textContent =
+          `선택: ${candidate.team} ${index + 1}번 · 이 안건에 대한 결정을 기록합니다.`;
+      });
+      const copy = document.createElement("label");
+      copy.htmlFor = input.id;
+      const title = document.createElement("strong");
+      title.textContent = `${index + 1}. [${candidate.team}] ${candidate.title}`;
+      const source = document.createElement("small");
+      source.textContent = `${candidate.source} · ${candidate.published}`;
+      const reason = document.createElement("span");
+      reason.textContent = candidate.reason;
+      const link = document.createElement("a");
+      link.href = candidate.url;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      link.textContent = "원문 확인 ↗";
+      copy.append(title, source, reason, link);
+      card.append(input, copy);
+      container.append(card);
+    });
+  }
+
+  const notes = document.getElementById("vault-notes");
+  notes.replaceChildren();
+  if (state?.notes?.length) {
+    const heading = document.createElement("strong");
+    heading.textContent = "옵시디언 기록";
+    notes.append(heading);
+    state.notes.forEach((note) => {
+      const line = document.createElement("div");
+      line.textContent = `↳ ${note}`;
+      notes.append(line);
+    });
+  }
+
+  document.getElementById("vmware-job-state").textContent =
+    state?.counts?.vmware ? `${state.counts.vmware}개 완료` : "조사 중";
+  document.getElementById("trend-job-state").textContent =
+    state?.counts?.trend ? `${state.counts.trend}개 완료` : "조사 중";
+  if (candidates.length) {
+    document.getElementById("approval-summary").textContent =
+      `TOP ${candidates.length} 준비 완료 · 한 안건을 선택하면 그 결정만 옵시디언에 기록합니다.`;
+  }
+  refreshStageUI();
+}
+
+async function connectVaultAndResearch() {
+  const chip = document.getElementById("vault-connection");
+  if (!localBridge) {
+    chip.classList.remove("checking");
+    chip.classList.add("offline");
+    chip.innerHTML = "<i></i> PAGES 데모";
+    document.getElementById("approval-summary").textContent =
+      "GitHub Pages는 로컬 파일을 쓸 수 없어요. run-local.command로 연 로컬 콘솔에서 실제 조사·승인을 사용할 수 있습니다.";
+    renderCompanyState({ status: "public_demo", approvalCandidates: [], notes: [] });
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/morning-run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force: false }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    chip.classList.remove("checking", "offline");
+    chip.innerHTML = "<i></i> VAULT 연결";
+    renderCompanyState(await response.json());
+    logActivity("오늘의 두 팀 리서치를 옵시디언 01_아이디어에 저장했어요.");
+  } catch (error) {
+    chip.classList.remove("checking");
+    chip.classList.add("offline");
+    chip.innerHTML = "<i></i> 연결 실패";
+    document.getElementById("approval-summary").textContent =
+      `로컬 연결 실패: ${error.message}. run-local.command로 콘솔을 다시 열어 주세요.`;
+    renderCompanyState({ status: "error", approvalCandidates: [], notes: [] });
+  }
+}
+
+function startAttendanceAnimation() {
+  const entranceX = rooms.entrance.x + Math.floor(rooms.entrance.w / 2);
+  const entranceTile = { x: entranceX, y: gridHeight - 1 };
+  let index = 0;
+
+  people.forEach((person) => {
+    person.visible = false;
+    person.path = [];
+    person.animation = null;
+  });
+  brief("페이지가 열렸어요. 전 직원이 출입구부터 차례로 출근합니다.");
+  logActivity("전원 출근 애니메이션을 시작했어요.");
+
+  const spawnNext = () => {
+    if (index >= people.length) {
+      window.setTimeout(startDay, 2200);
+      return;
+    }
+    if (occupiedTiles().has(tileKey(entranceTile.x, entranceTile.y))) {
+      window.setTimeout(spawnNext, 90);
+      return;
+    }
+    const person = people[index];
+    person.tile = { ...entranceTile };
+    person.previousTile = { ...entranceTile };
+    person.visible = true;
+    routeHome(person, () => {
+      person.animation = "sit";
+    });
+    index += 1;
+    if (index === 1 || index % 8 === 0 || index === people.length) {
+      showDialogue(
+        person,
+        index === people.length
+          ? `전원 ${people.length}명 출근했어요. 이제 아침 업무를 시작할게요!`
+          : `${index}/${people.length}명 출근 중이에요. 제 자리로 갈게요!`,
+        950,
+      );
+    }
+    window.setTimeout(spawnNext, 220);
+  };
+  spawnNext();
 }
 
 function secretaryVisit(message, logMessage) {
@@ -1297,6 +1504,24 @@ function brief(message) {
   document.getElementById("secretary-bubble").textContent = message;
 }
 
+function showDialogue(person, message, duration = 2400) {
+  const bubble = document.getElementById("map-dialogue");
+  person.speech = message;
+  person.animation = "talk";
+  document.getElementById("dialogue-avatar").textContent = person.emoji;
+  document.getElementById("dialogue-speaker").textContent = person.name;
+  document.getElementById("dialogue-text").textContent = message;
+  bubble.hidden = false;
+  if (dialogueTimer) window.clearTimeout(dialogueTimer);
+  dialogueTimer = window.setTimeout(() => {
+    if (person.speech === message) {
+      person.speech = "";
+      if (person.status !== "완료") person.animation = null;
+    }
+    bubble.hidden = true;
+  }, duration);
+}
+
 function logActivity(message) {
   const log = document.getElementById("activity-log");
   const item = document.createElement("li");
@@ -1313,8 +1538,9 @@ function refreshStageUI() {
   const current = day.step ? STEPS[day.step - 1] : null;
   document.getElementById("step-badge").textContent = current ? `${day.step} / 12` : "준비";
   document.getElementById("stage-icon").textContent = current?.icon || "☀";
-  document.getElementById("stage-title").textContent = current?.title || "대표의 지시를 기다리고 있어요";
-  document.getElementById("stage-description").textContent = current?.description || "도메인을 고르고 ‘오늘 업무 시작’을 눌러주세요.";
+  document.getElementById("stage-title").textContent = current?.title || "자동 출근을 준비하고 있어요";
+  document.getElementById("stage-description").textContent =
+    current?.description || "페이지를 열면 전원이 출근하고 아침 조사를 자동으로 시작해요.";
   document.getElementById("office-clock").textContent = current?.clock || "07:00";
   document.getElementById("office-state").textContent =
     day.step === 7 && !day.decision ? "대표 승인 대기" : day.finished ? "오늘 업무 완료" : current?.title || "업무 준비";
@@ -1325,18 +1551,14 @@ function refreshStageUI() {
     item.classList.toggle("current", day.step === index + 1);
   });
 
-  const approvalReady = day.step === 7;
+  const approvalReady =
+    day.step === 7 &&
+    Boolean(companyState?.approvalCandidates?.length) &&
+    (localBridge || companyState?.status === "public_demo");
   document.getElementById("approval-box").classList.toggle("ready", approvalReady);
   document.querySelectorAll("[data-decision]").forEach((button) => {
     button.disabled = !approvalReady;
   });
-  document.getElementById("next-step").disabled = !day.started || (day.step === 7 && !day.decision);
-  document.getElementById("next-step").textContent = day.step >= 12 ? "새 업무일" : "다음 단계";
-  const startButton = document.getElementById("start-day");
-  startButton.disabled = day.started;
-  startButton.innerHTML = day.started
-    ? '<span aria-hidden="true">●</span> 업무 자동 진행 중'
-    : '<span aria-hidden="true">▶</span> 오늘 업무 시작';
 }
 
 function statusCounts() {
@@ -1435,27 +1657,8 @@ function setupUI() {
     filters.append(button);
   });
 
-  document.getElementById("start-day").addEventListener("click", startDay);
-  document.getElementById("next-step").addEventListener("click", nextStep);
-  document.getElementById("assign-team").addEventListener("click", () => {
-    assignTeamWork(document.getElementById("team-select").value);
-  });
-  document.getElementById("status-report").addEventListener("click", statusReport);
-  document.getElementById("bottleneck").addEventListener("click", reportBottleneck);
-  document.getElementById("meeting-call").addEventListener("click", callMeeting);
-  document.getElementById("focus-mode").addEventListener("click", focusMode);
   document.querySelectorAll("[data-decision]").forEach((button) => {
     button.addEventListener("click", () => handleDecision(button.dataset.decision));
-  });
-  document.getElementById("command-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const input = document.getElementById("command-input");
-    handleCommand(input.value);
-    input.value = "";
-  });
-  document.getElementById("clear-log").addEventListener("click", () => {
-    document.getElementById("activity-log").replaceChildren();
-    logActivity("보고 기록을 정리했어요.");
   });
   document.querySelector(".popover-close").addEventListener("click", closePopover);
   document.addEventListener("keydown", (event) => {
@@ -1500,6 +1703,7 @@ function setupMapControls() {
     let nearest = null;
     let nearestDistance = Infinity;
     for (const person of people) {
+      if (!person.visible) continue;
       const distance = Math.hypot(person.screen.x - x, person.screen.y - y);
       if (distance < nearestDistance && distance < 19) {
         nearest = person;
@@ -1521,4 +1725,5 @@ refreshStageUI();
 refreshStatusUI();
 requestAnimationFrame(drawPeople);
 requestAnimationFrame(() => fitZoom());
-logActivity("픽셀 오피스 콘솔을 열었어요.");
+connectVaultAndResearch();
+startAttendanceAnimation();

@@ -11,7 +11,7 @@
     <meta property="og:title" content="YURIM AI COMPANY · Pixel Office" />
     <meta
       property="og:description"
-      content="버튼으로 하루 업무를 지시하고, 동물 직원들의 상태와 이동을 확인하는 귀여운 픽셀 오피스"
+      content="직원들이 알아서 조사하고 대표는 TOP 3만 승인하는 귀여운 자율 운영 픽셀 오피스"
     />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="./og.png" />
@@ -64,6 +64,13 @@
               <canvas id="office-map" aria-label="YURIM AI COMPANY 타일 사무실 지도"></canvas>
               <canvas id="office-people" aria-label="직원 위치와 애니메이션"></canvas>
             </div>
+            <div class="map-dialogue" id="map-dialogue" hidden>
+              <span class="map-dialogue-avatar" id="dialogue-avatar" aria-hidden="true">🐶</span>
+              <div>
+                <strong id="dialogue-speaker">강아지 브리프</strong>
+                <p id="dialogue-text">출근 준비 중이에요.</p>
+              </div>
+            </div>
           </div>
 
           <div class="map-footer">
@@ -85,7 +92,7 @@
             <div class="stage-icon" id="stage-icon" aria-hidden="true">☀</div>
             <div>
               <strong id="stage-title">대표의 지시를 기다리고 있어요</strong>
-              <p id="stage-description">도메인을 고르고 ‘오늘 업무 시작’을 눌러주세요.</p>
+              <p id="stage-description">페이지를 열면 전원이 출근하고 아침 조사를 자동으로 시작해요.</p>
             </div>
           </div>
         </div>
@@ -95,63 +102,43 @@
         <section class="panel command-panel">
           <div class="console-title">
             <div>
-              <p class="eyebrow">CEO CONSOLE</p>
-              <h2>대표 지시창</h2>
+              <p class="eyebrow">AUTONOMOUS OFFICE</p>
+              <h2>대표 승인 콘솔</h2>
             </div>
-            <span class="live-chip"><i></i> LOCAL</span>
+            <span class="live-chip checking" id="vault-connection"><i></i> 연결 확인</span>
           </div>
 
-          <label class="field-label" for="domain-select">오늘의 도메인팀</label>
-          <div class="select-wrap">
-            <select id="domain-select">
-              <option value="vmware">🐘 VMware팀</option>
-              <option value="k8s">🐬 Kubernetes팀</option>
-              <option value="linux">🐧 Linux팀</option>
-              <option value="trend">🦊 IT트렌드팀</option>
-            </select>
-          </div>
-
-          <div class="primary-actions">
-            <button class="pixel-button primary" id="start-day" type="button">
-              <span aria-hidden="true">▶</span> 오늘 업무 시작
-            </button>
-            <button class="pixel-button" id="next-step" type="button" disabled>
-              다음 단계
-            </button>
-          </div>
-
-          <label class="field-label" for="team-select">부서 바로 일시키기</label>
-          <div class="team-action-row">
-            <div class="select-wrap">
-              <select id="team-select">
-                <option value="vmware">🐘 VMware팀</option>
-                <option value="k8s">🐬 Kubernetes팀</option>
-                <option value="linux">🐧 Linux팀</option>
-                <option value="trend">🦊 IT트렌드팀</option>
-                <option value="brand">🦉 브랜드 분석팀</option>
-                <option value="qa">🦡 검수팀</option>
-                <option value="writer">🦫 기술노트 작성팀</option>
-                <option value="format">🐿️ 콘텐츠 정리팀</option>
-                <option value="review">🐢 성과리뷰팀</option>
-                <option value="auto">🐜 자동화 운영팀</option>
-                <option value="secretary">🐶 비서실</option>
-              </select>
+          <div class="auto-operations">
+            <div class="operation-row active">
+              <span>🐘</span>
+              <div><strong>VMware팀</strong><small>William Lam · Broadcom/VMware 최신 이슈 10개</small></div>
+              <b id="vmware-job-state">출근 중</b>
             </div>
-            <button class="pixel-button work-button" id="assign-team" type="button">업무 지시</button>
-          </div>
-
-          <div class="quick-grid">
-            <button class="soft-button" id="status-report" type="button">현황 보고</button>
-            <button class="soft-button" id="bottleneck" type="button">왜 늦어져?</button>
-            <button class="soft-button" id="meeting-call" type="button">팀장 회의</button>
-            <button class="soft-button" id="focus-mode" type="button">집중 모드</button>
+            <div class="operation-row active">
+              <span>🦊</span>
+              <div><strong>IT트렌드팀</strong><small>공식 AI 소스 최신 트렌드 10개</small></div>
+              <b id="trend-job-state">출근 중</b>
+            </div>
+            <div class="operation-row dormant">
+              <span>🐬</span>
+              <div><strong>Kubernetes팀</strong><small>업무가 정해지면 자동 운영에 연결</small></div>
+              <b>업무 미지정</b>
+            </div>
+            <div class="operation-row dormant">
+              <span>🐧</span>
+              <div><strong>Linux팀</strong><small>업무가 정해지면 자동 운영에 연결</small></div>
+              <b>업무 미지정</b>
+            </div>
           </div>
 
           <div class="approval-box" id="approval-box">
             <div>
               <span class="approval-light"></span>
               <strong>대표 승인</strong>
-              <p>TOP 3 도착 전에는 결재할 수 없어요.</p>
+              <p id="approval-summary">직원들이 조사하고 있어요. TOP 3가 도착하면 정확한 안건을 보여드릴게요.</p>
+            </div>
+            <div class="approval-candidates" id="approval-candidates" aria-live="polite">
+              <div class="candidate-placeholder">조사 결과를 기다리는 중…</div>
             </div>
             <div class="approval-actions">
               <button type="button" data-decision="승인" disabled>승인</button>
@@ -159,21 +146,10 @@
               <button type="button" data-decision="보류" disabled>보류</button>
               <button type="button" data-decision="폐기" disabled>폐기</button>
             </div>
+            <div class="vault-notes" id="vault-notes"></div>
           </div>
 
-          <form class="command-form" id="command-form">
-            <label class="field-label" for="command-input">직접 지시</label>
-            <div class="command-input-row">
-              <input
-                id="command-input"
-                type="text"
-                autocomplete="off"
-                placeholder="예: VMware팀 회의 소집"
-              />
-              <button class="send-button" type="submit" aria-label="지시 실행">↵</button>
-            </div>
-            <p class="field-help">사규의 대표 지시문을 로컬 명령으로 인식해요.</p>
-          </form>
+          <p class="approval-only-note">대표님은 조사 결과를 읽고 승인 단계에서만 결정하면 돼요. 나머지는 직원들이 이어서 처리합니다.</p>
         </section>
 
         <section class="panel brief-panel">
@@ -182,7 +158,6 @@
               <p class="eyebrow">SECRETARY LOG</p>
               <h2>강아지 브리프의 보고</h2>
             </div>
-            <button class="text-button" id="clear-log" type="button">기록 정리</button>
           </div>
           <div class="secretary-message">
             <span class="secretary-avatar" aria-hidden="true">🐶</span>

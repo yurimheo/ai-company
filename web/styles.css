@@ -9,6 +9,24 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "A2z";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/에이투지체-4Regular.woff2")
+    format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "A2z";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/에이투지체-7Bold.woff2")
+    format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --cream-0: #fffaf0;
   --cream-1: #f8edcf;
@@ -186,18 +204,18 @@ h1 {
   margin-bottom: 0;
   font-family: "A2z", "Galmuri9", sans-serif;
   font-size: clamp(23px, 2.5vw, 34px);
-  font-weight: 100;
+  font-weight: 400;
   line-height: 1.14;
   letter-spacing: -0.018em;
 }
 
 h2 {
   margin-bottom: 3px;
-  font-family: "A2z", "Galmuri9", sans-serif;
-  font-size: 21px;
-  font-weight: 100;
+  font-family: "A2z", "Galmuri9", "Apple SD Gothic Neo", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1.2;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.015em;
 }
 
 .clock-card {
@@ -386,6 +404,63 @@ h2 {
   transform-origin: top left;
 }
 
+.map-dialogue {
+  position: sticky;
+  left: 14px;
+  bottom: 14px;
+  z-index: 4;
+  width: min(420px, calc(100% - 28px));
+  margin: 0 0 14px 14px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #4d403c;
+  background: rgba(255, 250, 240, 0.96);
+  border: 3px solid #b98867;
+  border-radius: 8px 16px 16px;
+  box-shadow: 5px 6px 0 rgba(67, 47, 38, 0.23);
+  pointer-events: none;
+}
+
+.map-dialogue[hidden] {
+  display: none;
+}
+
+.map-dialogue::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  bottom: -11px;
+  border: 6px solid transparent;
+  border-top-color: #b98867;
+}
+
+.map-dialogue-avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  background: #f4d59d;
+  border: 2px solid #c7985d;
+  border-radius: 8px;
+  font-size: 18px;
+}
+
+.map-dialogue strong {
+  display: block;
+  color: #6a4d43;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.map-dialogue p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 #office-map,
 #office-people {
   display: block;
@@ -538,9 +613,9 @@ h2 {
 }
 
 .stage-detail strong {
-  font-family: "A2z", "Galmuri9", sans-serif;
-  font-size: 17px;
-  font-weight: 100;
+  font-family: "Galmuri9", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .stage-detail p {
@@ -581,6 +656,81 @@ h2 {
   background: var(--mint);
   border-radius: 2px;
   animation: pulse 1.5s steps(2, end) infinite;
+}
+
+.live-chip.checking {
+  color: #77645e;
+  background: #f3e8d0;
+  border-color: #cdb68d;
+}
+
+.live-chip.offline {
+  color: #8b5969;
+  background: #f4dce4;
+  border-color: #d198ad;
+}
+
+.live-chip.offline i {
+  background: var(--rose);
+}
+
+.auto-operations {
+  margin: 12px 16px 14px;
+  display: grid;
+  gap: 7px;
+}
+
+.operation-row {
+  min-height: 54px;
+  padding: 8px 9px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  background: #fffaf0;
+  border: 1px solid #dfc9a1;
+  border-radius: 9px;
+}
+
+.operation-row > span {
+  font-size: 21px;
+}
+
+.operation-row strong,
+.operation-row small {
+  display: block;
+}
+
+.operation-row strong {
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.operation-row small {
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.operation-row b {
+  padding: 4px 6px;
+  color: #4f735c;
+  background: #dcebd4;
+  border: 1px solid #a8c19b;
+  border-radius: 5px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.operation-row.dormant {
+  opacity: 0.72;
+}
+
+.operation-row.dormant b {
+  color: #796d62;
+  background: #ece3d1;
+  border-color: #ccb996;
 }
 
 .field-label {
@@ -691,6 +841,86 @@ select {
   border-radius: 11px;
 }
 
+.approval-candidates {
+  margin-top: 10px;
+  display: grid;
+  gap: 7px;
+}
+
+.candidate-placeholder {
+  padding: 11px;
+  color: #897970;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px dashed #c9b18b;
+  border-radius: 7px;
+  text-align: center;
+  font-size: 9px;
+}
+
+.candidate-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 6px;
+  padding: 9px;
+  background: #fffaf2;
+  border: 2px solid #ddc8aa;
+  border-radius: 8px;
+}
+
+.candidate-card label {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.candidate-card:has(input:checked) {
+  background: #fff1f5;
+  border-color: #cf7898;
+  box-shadow: 0 2px 0 rgba(168, 79, 112, 0.18);
+}
+
+.candidate-card input {
+  width: 14px;
+  height: 14px;
+  margin: 2px 0 0;
+  accent-color: var(--rose);
+}
+
+.candidate-card strong,
+.candidate-card small,
+.candidate-card span {
+  display: block;
+}
+
+.candidate-card a {
+  width: fit-content;
+  margin-top: 5px;
+  display: block;
+  color: var(--sage-dark);
+  font-size: 8px;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.candidate-card strong {
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.candidate-card small {
+  margin-top: 3px;
+  color: var(--ink-soft);
+  font-size: 8px;
+}
+
+.candidate-card span {
+  margin-top: 4px;
+  color: #8a5267;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
 .approval-box.ready {
   background: #f9dce6;
   border-color: #cb7897;
@@ -743,6 +973,28 @@ select {
   border-radius: 6px;
   font-size: 10px;
   font-weight: 900;
+}
+
+.vault-notes {
+  margin-top: 9px;
+  color: #77675d;
+  font-size: 8px;
+  line-height: 1.55;
+  word-break: break-all;
+}
+
+.vault-notes strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--sage-dark);
+  font-size: 8px;
+}
+
+.approval-only-note {
+  margin: 10px 16px 0;
+  color: #78685f;
+  font-size: 9px;
+  line-height: 1.55;
 }
 
 .command-form {

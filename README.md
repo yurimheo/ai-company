@@ -1,39 +1,51 @@
 # YURIM AI COMPANY · Pixel Office
 
-사규에 정의된 11개 부서, 직원 31명, 사람 대표 1명과 하루 12단계 파이프라인을 보여주는 정적 웹 콘솔입니다.
+31명의 동물 직원과 사람 대표가 일하는 2D 파스텔 픽셀 오피스입니다. 페이지를 열면 전원이 출입구에서 출근하고, 정해진 팀은 버튼 없이 아침 업무를 시작합니다. 대표는 TOP 3가 준비됐을 때만 결정합니다.
 
-## 포함된 기능
+## 지금 자동으로 하는 일
+
+- VMware팀: William Lam과 VMware/Broadcom 공식 피드에서 최신 버그·이슈·업그레이드 후보 10개 조사
+- IT트렌드팀: OpenAI, Google AI, NVIDIA, AWS ML, CNCF 공식 피드에서 AI 트렌드 10개 조사
+- 브랜드 분석팀·검수팀: 20개 결과의 우선순위를 매기고 TOP 3 선정
+- 대표: TOP 3 가운데 승인·수정·보류·폐기 결정
+- 승인 뒤: 기술노트 초안과 대표 결정 기록을 자동 저장
+- Kubernetes팀·Linux팀: 업무 미지정 상태로 대기
+
+## 옵시디언 볼트와 연결해서 실행
+
+`run-local.command`를 더블클릭하거나 터미널에서 아래처럼 실행합니다.
+
+```bash
+./run-local.command
+```
+
+브라우저에서 `http://localhost:4173`을 열면 현재 볼트가 연결됩니다.
+
+- `01_아이디어/YYYY-MM-DD/VMware팀-리서치.md`
+- `01_아이디어/YYYY-MM-DD/IT트렌드팀-리서치.md`
+- `02_기술노트/YYYY-MM-DD-선택안-기술노트.md` — 승인 뒤 생성
+- `03_성과기록/YYYY-MM-DD-대표결정.md` — 결정 뒤 생성
+
+다른 옵시디언 볼트를 연결하려면 환경변수로 절대 경로를 지정합니다.
+
+```bash
+AI_COMPANY_VAULT="/path/to/Obsidian Vault" ./run-local.command
+```
+
+GitHub Pages는 브라우저 보안상 컴퓨터의 로컬 파일을 쓸 수 없으므로 읽기 전용 데모입니다. 실제 조사와 옵시디언 기록은 로컬 콘솔에서 처리하며 API 키는 브라우저에 넣지 않습니다.
+
+## 사무실 엔진
 
 - 부서별 방 11개, 대표실, 회의실, 라운지, 출입구
 - 직원 수와 일치하는 책상·의자 자리
-- 벽과 가구 충돌 처리
+- 벽·가구 충돌 처리
 - 다른 직원을 동적 장애물로 취급하는 A* 경로 탐색
 - 완료·진행 중·승인 대기·연동 대기·대기 5종 상태
 - 걷기·타이핑·대화·앉기 픽셀 애니메이션
-- 도메인 지정, 단계 진행, 회의 소집, 집중 모드, 대표 승인 콘솔
-- 사규의 대표 지시문을 인식하는 로컬 명령창
-
-현재 콘솔은 브라우저 안에서 동작하는 시뮬레이션입니다. 실제 AI 작업을 연결할 때는 API 키를 브라우저 코드에 넣지 말고 별도 서버 또는 GitHub Actions의 Secret을 사용해야 합니다.
-
-## 로컬에서 보기
-
-`web` 폴더를 정적 웹 서버로 열면 됩니다.
-
-```bash
-cd web
-python3 -m http.server 4173
-```
-
-브라우저에서 `http://localhost:4173`을 엽니다.
+- 지도 말풍선에 실제 보고·회의 대화 표시
 
 ## GitHub Pages 배포
 
 연결된 저장소: [yurimheo/ai-company](https://github.com/yurimheo/ai-company)
 
-```bash
-git add .
-git commit -m "Update pixel office"
-git push
-```
-
-저장소의 **Settings → Pages → Build and deployment → Source**를 `GitHub Actions`로 선택합니다. 이후 `main` 브랜치에 push하면 `.github/workflows/pages.yml`이 `web` 폴더를 자동 배포합니다.
+`main` 브랜치에 push하면 `.github/workflows/pages.yml`이 `web` 폴더를 자동 배포합니다.
