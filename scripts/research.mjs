@@ -75,6 +75,7 @@ function decodeEntities(value = "") {
     .replace(/&quot;|&#34;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&#(\d+);/g, (_, number) => String.fromCodePoint(Number(number)))
+    .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -369,6 +370,38 @@ function scoreText(evaluation) {
   return `${evaluation.total}점 · 브랜드 ${evaluation.brandFit}/25 · 시급성 ${evaluation.urgency}/20 · 근거 ${evaluation.evidence}/20 · 실행 ${evaluation.actionability}/20 · 차별성 ${evaluation.differentiation}/15`;
 }
 
+function collectionReport({ date, team, purpose, items, errors }) {
+  const lines = [
+    "---",
+    `date: ${date}`,
+    `team: ${team}`,
+    "status: 공개 자료 수집 완료",
+    "source_policy: 공식 문서 및 지정 소스 우선",
+    "---",
+    "",
+    `# ${date} ${team} 수집 원본`,
+    "",
+    `> ${purpose}`,
+    "",
+    `- 실행 시각: ${nowKst()}`,
+    `- 수집 결과: ${items.length}개`,
+    `- 수집 실패: ${errors.length ? errors.join(" / ") : "없음"}`,
+    "",
+  ];
+  items.forEach((item) => {
+    lines.push(
+      `## ${item.rank}. ${item.title}`,
+      "",
+      `- 출처: ${item.source}${item.official ? " · 공식" : " · 지정 소스"}`,
+      `- 게시일: ${item.published}`,
+      `- 링크: ${item.url}`,
+      `- 원문 요약: ${item.summary || "RSS 요약 없음"}`,
+      "",
+    );
+  });
+  return `${lines.join("\n")}\n`;
+}
+
 function markdownReport({ date, team, purpose, items, errors, evaluations }) {
   const evaluationByUrl = new Map(
     evaluations.map((evaluation) => [evaluation.sourceUrl, evaluation]),
@@ -572,6 +605,41 @@ export async function runMorningResearch({ force = false } = {}) {
   const allItems = [...vmware, ...aiTrends];
   const dailyIdeaDir = path.join(IDEA_DIR, date);
   await mkdir(dailyIdeaDir, { recursive: true });
+  const vmwareCollectionPath = await versionedPath(
+    path.join(dailyIdeaDir, "VMware팀-수집원본.md"),
+  );
+  const trendCollectionPath = await versionedPath(
+    path.join(dailyIdeaDir, "IT트렌드팀-수집원본.md"),
+  );
+  await Promise.all([
+    writeFile(
+      vmwareCollectionPath,
+      collectionReport({
+        date,
+        team: "VMware팀",
+        purpose:
+          "William Lam과 VMware/Broadcom 공식 소스에서 최신 버그·패치·호환성·업그레이드 후보 10개를 매일 수집합니다.",
+        items: vmware,
+        errors: vmwareRaw.errors,
+      }),
+      "utf8",
+    ),
+    writeFile(
+      trendCollectionPath,
+      collectionReport({
+        date,
+        team: "IT트렌드팀",
+        purpose:
+          "공식 AI·클라우드 소스에서 오늘 확인할 AI 트렌드 후보 10개를 매일 수집합니다.",
+        items: aiTrends,
+        errors: aiRaw.errors,
+      }),
+      "utf8",
+    ),
+  ]);
+  const collectionNotes = [vmwareCollectionPath, trendCollectionPath].map(
+    (target) => path.relative(VAULT_ROOT, target),
+  );
 
   await writeFile(
     STATE_FILE,
@@ -610,7 +678,7 @@ export async function runMorningResearch({ force = false } = {}) {
         error.message,
       ],
       approvalCandidates: [],
-      notes: [],
+      notes: collectionNotes,
     };
     await writeFile(STATE_FILE, JSON.stringify(failedState, null, 2), "utf8");
     return failedState;
@@ -684,9 +752,12 @@ export async function runMorningResearch({ force = false } = {}) {
       qa: "완료",
     },
     approvalCandidates: candidates,
-    notes: [vmwarePath, aiPath, qaPath].map((target) =>
-      path.relative(VAULT_ROOT, target),
-    ),
+    notes: [
+      ...collectionNotes,
+      ...[vmwarePath, aiPath, qaPath].map((target) =>
+        path.relative(VAULT_ROOT, target),
+      ),
+    ],
     errors: [...vmwareRaw.errors, ...aiRaw.errors],
   };
   await writeFile(STATE_FILE, JSON.stringify(state, null, 2), "utf8");
@@ -857,6 +928,9 @@ export async function recordDecision({ decision, candidateId }) {
         : "대표 결정 기록 완료",
     decision,
     selectedCandidateId: candidateId,
+    selectedCandidate: candidate,
+    approvalCandidates:
+      decision === "수정 요청" || writerError ? state.approvalCandidates : [],
     decidedAt: nowKst(),
     errors: [...(state.errors || []), ...(writerError ? [writerError] : [])],
     notes: [

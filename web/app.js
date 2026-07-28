@@ -13,6 +13,21 @@ const STATUS = {
   대기: { color: "#c9bca3", label: "대기", short: "대기" },
 };
 
+const SPECIES = [
+  "elephant",
+  "dolphin",
+  "penguin",
+  "fox",
+  "owl",
+  "meerkat",
+  "beaver",
+  "squirrel",
+  "turtle",
+  "ant",
+  "dog",
+  "human",
+];
+
 const DEPARTMENTS = {
   vmware: {
     name: "VMware팀",
@@ -537,8 +552,8 @@ function drawRoomSigns() {
     pixelRect(mapContext, signX - signWidth / 2, signY, signWidth, 14, shade(signColor, 9));
     pixelRect(mapContext, signX - signWidth / 2, signY, signWidth, 2, shade(signColor, -22));
     mapContext.fillStyle = "#4b3b37";
-    const icon = DEPARTMENTS[room.id]?.animal || SPECIAL_ROOMS[room.id]?.animal || "";
-    mapContext.fillText(`${icon} ${room.short}`, signX, signY + 8, signWidth - 5);
+    const icon = DEPARTMENTS[room.id] ? "" : SPECIAL_ROOMS[room.id]?.animal || "";
+    mapContext.fillText(`${icon} ${room.short}`.trim(), signX, signY + 8, signWidth - 5);
   }
 }
 
@@ -583,6 +598,8 @@ for (const [departmentId, entries] of Object.entries(ROSTER)) {
       paletteIndex: personCounter % 6,
       visible: false,
       speech: "",
+      pendingCandidateId: null,
+      pendingCandidateRank: null,
     });
     personCounter += 1;
   });
@@ -603,8 +620,40 @@ let autoAdvanceTimer = null;
 let dialogueTimer = null;
 let companyState = null;
 let selectedCandidateId = null;
+let attendanceComplete = false;
 let localBridge = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 const manualWorkTimers = new Map();
+
+function setSpeciesIcon(element, species) {
+  SPECIES.forEach((name) => element.classList.remove(`species-${name}`));
+  element.classList.add("staff-icon", `species-${species}`);
+  element.textContent = "";
+}
+
+function clearPendingApprovals() {
+  people.forEach((person) => {
+    person.pendingCandidateId = null;
+    person.pendingCandidateRank = null;
+  });
+}
+
+function assignPendingApprovals(candidates) {
+  clearPendingApprovals();
+  const teamOffsets = new Map();
+  candidates.forEach((candidate, index) => {
+    const members = team(candidate.teamId);
+    const offset = teamOffsets.get(candidate.teamId) || 0;
+    const owner = members[offset % members.length];
+    teamOffsets.set(candidate.teamId, offset + 1);
+    if (!owner) return;
+    owner.pendingCandidateId = candidate.id;
+    owner.pendingCandidateRank = candidate.selectionRank || index + 1;
+  });
+}
+
+function approvalOwners() {
+  return people.filter((person) => person.pendingCandidateId);
+}
 
 function occupiedTiles(excludeId) {
   return new Set(
@@ -988,17 +1037,39 @@ function drawAnimal(context, person, cx, cy, animation, now) {
     pixelRect(context, x + 11, y - 14, 2, 2, "#7c6a62");
     pixelRect(context, x + 15, y - 14, 2, 2, "#7c6a62");
     pixelRect(context, x + 19, y - 14, 2, 2, "#7c6a62");
-  } else if (person.status === "승인 대기" && !walk) {
-    pixelRect(context, x + 7, y - 17, 8, 10, "#fff3f6");
-    peopleContext.fillStyle = "#c45e83";
-    peopleContext.font = "900 9px ui-monospace";
-    peopleContext.fillText("!", x + 10, y - 9);
   } else if (person.status === "연동 대기" && !walk) {
     pixelRect(context, x + 8, y - 16, 12, 8, "#f3edfa");
     peopleContext.fillStyle = "#806da6";
     peopleContext.font = "900 7px ui-monospace";
     peopleContext.fillText("…", x + 10, y - 10);
   }
+}
+
+function drawApprovalBang(context, person, cx, cy, now) {
+  if (!person.pendingCandidateId) return;
+  const pulse = Math.floor(now / 220) % 2;
+  const x = Math.round(cx);
+  const y = Math.round(cy - 38 - (pulse ? 3 : 0));
+  context.save();
+  context.shadowColor = "rgba(184, 67, 109, 0.7)";
+  context.shadowBlur = pulse ? 13 : 7;
+  context.fillStyle = "#fff1a8";
+  context.fillRect(x - 16, y - 19, 32, 37);
+  context.strokeStyle = pulse ? "#9f315b" : "#d45984";
+  context.lineWidth = pulse ? 6 : 4;
+  context.strokeRect(x - 16, y - 19, 32, 37);
+  context.shadowBlur = 0;
+  context.fillStyle = "#a93863";
+  context.font = "900 28px ui-monospace";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText("!", x, y - 1);
+  context.fillStyle = "#fffaf0";
+  context.fillRect(x + 10, y - 23, 18, 11);
+  context.fillStyle = "#8b3958";
+  context.font = "900 8px ui-monospace";
+  context.fillText(`T${person.pendingCandidateRank}`, x + 19, y - 17);
+  context.restore();
 }
 
 function drawHuman(context, person, cx, cy, animation, now) {
@@ -1051,6 +1122,7 @@ function drawPeople(now) {
     const animation = personAnimation(person, now);
     if (person.species === "human") drawHuman(peopleContext, person, cx, cy, animation, now);
     else drawAnimal(peopleContext, person, cx, cy, animation, now);
+    drawApprovalBang(peopleContext, person, cx, cy, now);
 
     if (person.selected) {
       peopleContext.strokeStyle = "#fff8cd";
@@ -1126,14 +1198,43 @@ function applyStage(step) {
     brief("검수 통과안 가운데 TOP 3를 정리했어요. 곧 대표 승인 대기로 전환할게요.");
     logActivity("검수팀이 TOP 3를 선정했어요.");
   } else if (step === 7) {
-    const attendees = [team("vmware")[0], team("trend")[0], team("qa")[0]];
-    sendPeopleToRoom(attendees, "meeting", "승인 대기", "sit", 0);
+    if (companyState) renderCompanyState(companyState);
+    const pendingApproval = [
+      "approval_pending",
+      "revision_requested",
+      "writer_failed",
+    ].includes(companyState?.status);
+    if (!pendingApproval) {
+      clearPendingApprovals();
+      if (companyState?.status === "approved") {
+        day.decision = "승인";
+        brief("오늘 승인 기록을 확인했어요. 기술노트 작성 이후 단계부터 이어갑니다.");
+        logActivity("이미 승인된 오늘 안건을 확인하고 후속 단계로 이동해요.");
+        window.setTimeout(() => applyStage(8), 1400);
+      } else {
+        day.decision = companyState?.decision || null;
+        brief(
+          ["held", "discarded"].includes(companyState?.status)
+            ? `오늘 안건은 ${companyState.decision} 상태예요. TOP 3는 닫혀 있습니다.`
+            : "검수된 TOP 3가 준비되지 않아 승인 단계에서 멈췄어요.",
+        );
+      }
+      logActivity("대표 승인 상태를 오늘 기록과 동기화했어요.");
+      refreshStageUI();
+      refreshStatusUI();
+      return;
+    }
+    const attendees = approvalOwners();
+    attendees.forEach((person) => {
+      setStatus(person, "승인 대기", { animation: "sit" });
+      routeHome(person);
+    });
     setStatus(team("ceo")[0], "대기", { home: true });
     const topCandidate = companyState?.approvalCandidates?.[0];
     const approvalMessage = topCandidate
       ? `20개를 전수 평가했어요. TOP 1은 ${topCandidate.score}점의 “${topCandidate.title}”이고, 오늘 행동은 “${topCandidate.practicalAction}”입니다.`
       : "20개 전수 평가가 끝나면 점수 근거와 오늘 행동이 포함된 TOP 3만 올릴게요.";
-    showDialogue(team("qa")[0], approvalMessage, 5600);
+    showDialogue(attendees[0] || team("qa")[0], approvalMessage, 5600);
     brief(
       topCandidate
         ? "TOP 3 결재 브리프가 준비됐어요. 결론·오늘 행동·버전·점수·남은 확인사항을 읽고 한 건만 결정해 주세요."
@@ -1141,6 +1242,7 @@ function applyStage(step) {
     );
     logActivity("대표 승인 대기. AI 파이프라인을 멈췄어요.");
   } else if (step === 8) {
+    clearPendingApprovals();
     activePeople.concat(team("qa")).forEach((person) => {
       person.animation = null;
       setStatus(person, "대기");
@@ -1170,6 +1272,7 @@ function applyStage(step) {
     day.finished = true;
   }
 
+  if (companyState && step !== 7) renderCompanyState(companyState);
   refreshStageUI();
   refreshStatusUI();
   scheduleAutoAdvance();
@@ -1222,6 +1325,7 @@ async function handleDecision(decision) {
   const candidate = companyState?.approvalCandidates?.find(
     (item) => item.id === selectedCandidateId,
   );
+  const pendingOwnersBeforeDecision = approvalOwners();
   logActivity(`대표 결정: ${decision} · ${candidate?.title || selectedCandidateId}.`);
 
   if (localBridge) {
@@ -1269,12 +1373,26 @@ async function handleDecision(decision) {
     applyStage(8);
   } else if (decision === "수정 요청") {
     day.decision = null;
+    clearPendingApprovals();
+    pendingOwnersBeforeDecision.forEach((person) => {
+      person.animation = null;
+      setStatus(person, "대기");
+      routeHome(person);
+    });
     brief("수정 요청을 검수팀에 전달했어요. 수정 후 TOP 3를 다시 올릴게요.");
     applyStage(5);
   } else if (decision === "보류") {
-    day.decision = null;
-    brief("보류로 기록했어요. 파이프라인은 대표 승인 단계에서 계속 멈춰 있어요.");
+    clearPendingApprovals();
+    pendingOwnersBeforeDecision.forEach((person) => {
+      setStatus(person, "대기");
+      routeHome(person);
+    });
+    selectedCandidateId = null;
+    brief("보류로 기록했어요. TOP 3는 닫았고 오늘 파이프라인은 여기서 멈춥니다.");
+    refreshStageUI();
   } else if (decision === "폐기") {
+    clearPendingApprovals();
+    selectedCandidateId = null;
     clearAutoAdvance();
     day.started = false;
     day.step = 0;
@@ -1287,22 +1405,44 @@ async function handleDecision(decision) {
 
 function renderCompanyState(state) {
   companyState = state;
-  const candidates = state?.approvalCandidates || [];
+  const storedCandidates = state?.approvalCandidates || [];
+  const approvalStageVisible =
+    attendanceComplete &&
+    day.step === 7 &&
+    ["approval_pending", "revision_requested", "writer_failed"].includes(
+      state?.status,
+    );
+  const candidates = approvalStageVisible ? storedCandidates : [];
+  if (approvalStageVisible) assignPendingApprovals(candidates);
+  else clearPendingApprovals();
   const container = document.getElementById("approval-candidates");
   container.replaceChildren();
 
   if (!candidates.length) {
     const placeholder = document.createElement("div");
     placeholder.className = "candidate-placeholder";
-    if (state?.status === "researching") {
+    if (!attendanceComplete) {
+      placeholder.textContent =
+        "전 직원이 자리에 도착한 뒤 조사·검수 순서에 맞춰 TOP 3를 공개해요.";
+    } else if (day.step > 0 && day.step < 7 && storedCandidates.length) {
+      placeholder.textContent =
+        `현재 ${STEPS[day.step - 1].title} 단계예요. TOP 3는 대표 승인 단계에서만 열립니다.`;
+    } else if (state?.status === "researching") {
       placeholder.textContent = `현재 ${state.phase || "공식 소스 조사"} 중이에요…`;
     } else if (state?.status === "editorial_failed") {
       placeholder.textContent = `편집회의가 검수 기준을 통과하지 못해 TOP 3를 올리지 않았어요. ${state.errors?.at(-1) || ""}`;
     } else if (state?.status === "writer_failed") {
       placeholder.textContent = `승인안 집필이 검증 단계에서 멈췄어요. ${state.errors?.at(-1) || ""}`;
+    } else if (state?.status === "approved") {
+      placeholder.textContent = `승인 완료 · “${state.selectedCandidate?.title || "선택 안건"}”을 후속 팀에 전달했어요.`;
+    } else if (state?.status === "held") {
+      placeholder.textContent = `보류 완료 · “${state.selectedCandidate?.title || "선택 안건"}”을 닫고 오늘 파이프라인을 멈췄어요.`;
+    } else if (state?.status === "discarded") {
+      placeholder.textContent = `폐기 완료 · “${state.selectedCandidate?.title || "선택 안건"}”을 TOP 3에서 제거했어요.`;
     } else {
       placeholder.textContent = "표시할 승인 후보가 아직 없어요.";
     }
+    selectedCandidateId = null;
     container.append(placeholder);
   } else {
     if (!candidates.some((candidate) => candidate.id === selectedCandidateId)) {
@@ -1410,18 +1550,62 @@ function renderCompanyState(state) {
   }
 
   document.getElementById("vmware-job-state").textContent =
-    state?.counts?.vmware ? `${state.counts.vmware}개 완료` : "조사 중";
+    !attendanceComplete
+      ? "출근 중"
+      : day.step === 2
+        ? "자동 조사"
+        : day.step < 2
+        ? "업무 준비"
+        : state?.counts?.vmware
+          ? `${state.counts.vmware}개 완료`
+          : "조사 중";
   document.getElementById("trend-job-state").textContent =
-    state?.counts?.trend ? `${state.counts.trend}개 완료` : "조사 중";
+    !attendanceComplete
+      ? "출근 중"
+      : day.step === 2
+        ? "자동 조사"
+        : day.step < 2
+        ? "업무 준비"
+        : state?.counts?.trend
+          ? `${state.counts.trend}개 완료`
+          : "조사 중";
+  const outputReady = attendanceComplete && day.step >= 3;
+  const vmwareOutput = state?.notes?.find((note) =>
+    note.includes("VMware팀-수집원본"),
+  ) || state?.notes?.find((note) => note.includes("VMware팀-리서치"));
+  const trendOutput = state?.notes?.find((note) =>
+    note.includes("IT트렌드팀-수집원본"),
+  ) || state?.notes?.find((note) => note.includes("IT트렌드팀-리서치"));
+  document.getElementById("vmware-output").textContent = outputReady
+    ? vmwareOutput || "오늘 수집 결과를 작성 중이에요."
+    : "조사 단계가 끝나면 오늘 파일을 공개해요.";
+  document.getElementById("trend-output").textContent = outputReady
+    ? trendOutput || "오늘 수집 결과를 작성 중이에요."
+    : "조사 단계가 끝나면 오늘 파일을 공개해요.";
   if (state?.status === "writer_failed") {
     document.getElementById("approval-summary").textContent =
       "집필 실패 · 불완전한 초안을 저장하지 않고 승인 단계에서 멈췄습니다.";
   } else if (state?.status === "editorial_failed") {
     document.getElementById("approval-summary").textContent =
       "검수 실패 · 어설픈 후보를 대신 올리지 않고 편집회의를 멈췄습니다.";
+  } else if (state?.status === "held") {
+    document.getElementById("approval-summary").textContent =
+      "보류 완료 · TOP 3를 닫고 오늘 파이프라인을 멈췄습니다.";
+  } else if (state?.status === "discarded") {
+    document.getElementById("approval-summary").textContent =
+      "폐기 완료 · TOP 3를 화면과 상태에서 제거했습니다.";
+  } else if (state?.status === "approved") {
+    document.getElementById("approval-summary").textContent =
+      "승인 완료 · 선택 안건을 기술노트 작성팀에 전달했습니다.";
   } else if (candidates.length) {
     document.getElementById("approval-summary").textContent =
       `20개 전수 평가 → 검수 통과 TOP ${candidates.length} · 한 안건만 결정하면 후속 작성은 직원들이 처리합니다.`;
+  } else if (!attendanceComplete) {
+    document.getElementById("approval-summary").textContent =
+      "전 직원 출근 완료 후 업무 순서에 맞춰 TOP 3를 공개합니다.";
+  } else if (day.step < 7) {
+    document.getElementById("approval-summary").textContent =
+      "아직 승인 단계가 아니에요. 직원들이 현재 단계의 일을 처리 중입니다.";
   }
   refreshStageUI();
 }
@@ -1463,7 +1647,11 @@ function startAttendanceAnimation() {
   const entranceX = rooms.entrance.x + Math.floor(rooms.entrance.w / 2);
   const entranceTile = { x: entranceX, y: gridHeight - 1 };
   let index = 0;
+  let arrived = 0;
+  let workdayStarted = false;
 
+  attendanceComplete = false;
+  clearPendingApprovals();
   people.forEach((person) => {
     person.visible = false;
     person.path = [];
@@ -1473,10 +1661,7 @@ function startAttendanceAnimation() {
   logActivity("전원 출근 애니메이션을 시작했어요.");
 
   const spawnNext = () => {
-    if (index >= people.length) {
-      window.setTimeout(startDay, 2200);
-      return;
-    }
+    if (index >= people.length) return;
     if (occupiedTiles().has(tileKey(entranceTile.x, entranceTile.y))) {
       window.setTimeout(spawnNext, 90);
       return;
@@ -1487,6 +1672,15 @@ function startAttendanceAnimation() {
     person.visible = true;
     routeHome(person, () => {
       person.animation = "sit";
+      arrived += 1;
+      if (arrived === people.length && !workdayStarted) {
+        workdayStarted = true;
+        attendanceComplete = true;
+        brief(`전원 ${people.length}명 출근 완료예요. 이제 아침 업무를 시작합니다.`);
+        logActivity("전 직원이 각자 자리에 도착했어요.");
+        if (companyState) renderCompanyState(companyState);
+        window.setTimeout(startDay, 900);
+      }
     });
     index += 1;
     if (index === 1 || index % 8 === 0 || index === people.length) {
@@ -1606,11 +1800,38 @@ function brief(message) {
   document.getElementById("secretary-bubble").textContent = message;
 }
 
+function updateTimeGreeting() {
+  const hour = new Date().getHours();
+  let period;
+  let greeting;
+  if (hour >= 5 && hour < 12) {
+    period = "morning";
+    greeting = "좋은 오전이에요, 차근차근 시작해요";
+  } else if (hour >= 12 && hour < 17) {
+    period = "afternoon";
+    greeting = "좋은 오후예요, 픽셀 오피스";
+  } else if (hour >= 17 && hour < 21) {
+    period = "evening";
+    greeting = "좋은 저녁이에요, 오늘 일을 정리해요";
+  } else {
+    period = "night";
+    greeting = "늦은 밤이에요, 무리하지 말아요";
+  }
+  document.body.classList.remove(
+    "time-morning",
+    "time-afternoon",
+    "time-evening",
+    "time-night",
+  );
+  document.body.classList.add(`time-${period}`);
+  document.getElementById("greeting-title").textContent = greeting;
+}
+
 function showDialogue(person, message, duration = 2400) {
   const bubble = document.getElementById("map-dialogue");
   person.speech = message;
   person.animation = "talk";
-  document.getElementById("dialogue-avatar").textContent = person.emoji;
+  setSpeciesIcon(document.getElementById("dialogue-avatar"), person.species);
   document.getElementById("dialogue-speaker").textContent = person.name;
   document.getElementById("dialogue-text").textContent = message;
   bubble.hidden = false;
@@ -1638,14 +1859,25 @@ function logActivity(message) {
 
 function refreshStageUI() {
   const current = day.step ? STEPS[day.step - 1] : null;
+  const held = day.step === 7 && day.decision === "보류";
   document.getElementById("step-badge").textContent = current ? `${day.step} / 12` : "준비";
   document.getElementById("stage-icon").textContent = current?.icon || "☀";
-  document.getElementById("stage-title").textContent = current?.title || "자동 출근을 준비하고 있어요";
+  document.getElementById("stage-title").textContent = held
+    ? "대표 보류"
+    : current?.title || "자동 출근을 준비하고 있어요";
   document.getElementById("stage-description").textContent =
-    current?.description || "페이지를 열면 전원이 출근하고 아침 조사를 자동으로 시작해요.";
+    held
+      ? "TOP 3를 닫고 오늘 파이프라인을 보류 상태로 멈췄어요."
+      : current?.description || "페이지를 열면 전원이 출근하고 아침 조사를 자동으로 시작해요.";
   document.getElementById("office-clock").textContent = current?.clock || "07:00";
   document.getElementById("office-state").textContent =
-    day.step === 7 && !day.decision ? "대표 승인 대기" : day.finished ? "오늘 업무 완료" : current?.title || "업무 준비";
+    held
+      ? "대표 보류"
+      : day.step === 7 && !day.decision
+        ? "대표 승인 대기"
+        : day.finished
+          ? "오늘 업무 완료"
+          : current?.title || "업무 준비";
   document.getElementById("clock-dot").classList.toggle("waiting", day.step === 7 && !day.decision);
 
   document.querySelectorAll("#pipeline li").forEach((item, index) => {
@@ -1654,8 +1886,12 @@ function refreshStageUI() {
   });
 
   const approvalReady =
+    attendanceComplete &&
     day.step === 7 &&
     Boolean(companyState?.approvalCandidates?.length) &&
+    ["approval_pending", "revision_requested", "writer_failed"].includes(
+      companyState?.status,
+    ) &&
     (localBridge || companyState?.status === "public_demo");
   document.getElementById("approval-box").classList.toggle("ready", approvalReady);
   document.querySelectorAll("[data-decision]").forEach((button) => {
@@ -1688,7 +1924,7 @@ function renderRoster() {
     item.className = "roster-person";
     item.style.setProperty("--status-color", STATUS[person.status].color);
     item.innerHTML = `
-      <span class="roster-avatar" aria-hidden="true">${person.emoji}</span>
+      <span class="roster-avatar staff-icon species-${person.species}" aria-hidden="true"></span>
       <span>
         <strong>${person.name}</strong>
         <small>${person.department} · ${person.role}</small>
@@ -1702,17 +1938,35 @@ function renderRoster() {
 }
 
 function showPerson(person, event = null) {
+  if (person.pendingCandidateId) {
+    selectedCandidateId = person.pendingCandidateId;
+    renderCompanyState(companyState);
+  }
   people.forEach((candidate) => {
     candidate.selected = candidate.id === person.id;
   });
   selectedPerson = person;
   const popover = document.getElementById("person-popover");
-  document.getElementById("popover-avatar").textContent = person.emoji;
+  setSpeciesIcon(document.getElementById("popover-avatar"), person.species);
   document.getElementById("popover-name").textContent = person.name;
   document.getElementById("popover-role").textContent = `${person.department} · ${person.role} · ${person.detail}`;
   document.getElementById("popover-status").textContent = `${person.status} · ${personAnimation(person, performance.now()) === "walk" ? "목적지로 이동 중" : "현재 자리에서 업무 중"}`;
-  const left = event ? Math.min(window.innerWidth - 250, event.clientX + 12) : Math.max(12, window.innerWidth - 270);
-  const top = event ? Math.min(window.innerHeight - 130, event.clientY + 12) : 126;
+  const approval = companyState?.approvalCandidates?.find(
+    (candidate) => candidate.id === person.pendingCandidateId,
+  );
+  const approvalPanel = document.getElementById("popover-approval");
+  approvalPanel.hidden = !approval;
+  if (approval) {
+    document.getElementById("popover-approval-rank").textContent =
+      `TOP ${approval.selectionRank} · ${approval.team} 승인 요청`;
+    document.getElementById("popover-approval-title").textContent = approval.title;
+  }
+  const left = event
+    ? Math.min(window.innerWidth - 302, event.clientX + 12)
+    : Math.max(12, window.innerWidth - 302);
+  const top = event
+    ? Math.min(window.innerHeight - (approval ? 260 : 150), event.clientY + 12)
+    : 126;
   popover.style.left = `${Math.max(8, left)}px`;
   popover.style.top = `${Math.max(8, top)}px`;
   popover.hidden = false;
@@ -1763,6 +2017,17 @@ function setupUI() {
     button.addEventListener("click", () => handleDecision(button.dataset.decision));
   });
   document.querySelector(".popover-close").addEventListener("click", closePopover);
+  document.getElementById("popover-approve").addEventListener("click", () => {
+    closePopover();
+    handleDecision("승인");
+  });
+  document.getElementById("popover-open-console").addEventListener("click", () => {
+    closePopover();
+    document.querySelector(".command-panel").scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closePopover();
   });
@@ -1806,8 +2071,12 @@ function setupMapControls() {
     let nearestDistance = Infinity;
     for (const person of people) {
       if (!person.visible) continue;
-      const distance = Math.hypot(person.screen.x - x, person.screen.y - y);
-      if (distance < nearestDistance && distance < 19) {
+      const bodyDistance = Math.hypot(person.screen.x - x, person.screen.y - y);
+      const markerDistance = person.pendingCandidateId
+        ? Math.hypot(person.screen.x - x, person.screen.y - 38 - y)
+        : Infinity;
+      const distance = Math.min(bodyDistance, markerDistance);
+      if (distance < nearestDistance && distance < 24) {
         nearest = person;
         nearestDistance = distance;
       }
@@ -1823,6 +2092,8 @@ if (document.fonts?.ready) {
 }
 setupUI();
 setupMapControls();
+updateTimeGreeting();
+window.setInterval(updateTimeGreeting, 60_000);
 refreshStageUI();
 refreshStatusUI();
 requestAnimationFrame(drawPeople);
