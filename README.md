@@ -28,15 +28,12 @@ python3 -m http.server 4173
 
 ## GitHub Pages 배포
 
-새 GitHub 저장소를 만든 뒤 이 폴더에서 아래 순서로 연결합니다.
+연결된 저장소: [yurimheo/ai-company](https://github.com/yurimheo/ai-company)
 
 ```bash
-git init
 git add .
-git commit -m "Build YURIM pixel office console"
-git branch -M main
-git remote add origin <새 저장소 주소>
-git push -u origin main
+git commit -m "Update pixel office"
+git push
 ```
 
 저장소의 **Settings → Pages → Build and deployment → Source**를 `GitHub Actions`로 선택합니다. 이후 `main` 브랜치에 push하면 `.github/workflows/pages.yml`이 `web` 폴더를 자동 배포합니다.
