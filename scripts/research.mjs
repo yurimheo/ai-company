@@ -1076,7 +1076,7 @@ export async function runAssignedTask({ teamId, task }) {
     };
   }
 
-  const dailyTaskDir = path.join(IDEA_DIR, date, "추가업무");
+  const dailyTaskDir = path.join(REVIEW_DIR, date, "추가업무");
   await mkdir(dailyTaskDir, { recursive: true });
   const taskPath = await versionedPath(
     path.join(dailyTaskDir, `${team}-${safeTaskSlug(result.title)}.md`),
