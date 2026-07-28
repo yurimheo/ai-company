@@ -215,7 +215,10 @@
                 <span>DAILY REPORT</span>
                 <h3 id="report-board-title">오늘의 전체 리포트</h3>
               </div>
-              <b id="report-count">0 / 20</b>
+              <div class="report-board-actions">
+                <b id="report-count">0 / 20</b>
+                <button type="button" id="open-report-viewer">문서로 보기</button>
+              </div>
             </div>
             <div class="report-tabs" role="tablist" aria-label="리포트 팀 선택">
               <button type="button" class="active" data-report-team="trend" role="tab">AI 트렌드 TOP 10</button>
@@ -253,6 +256,24 @@
       </aside>
       </div>
     </main>
+
+    <dialog class="report-dialog" id="report-dialog" aria-labelledby="report-dialog-title">
+      <div class="report-dialog-shell">
+        <header class="report-dialog-header">
+          <div>
+            <p class="eyebrow">DAILY REPORT VIEWER</p>
+            <h2 id="report-dialog-title">오늘의 AI 트렌드 TOP 10</h2>
+            <p id="report-dialog-subtitle">검수된 전체 항목을 문서 형태로 확인합니다.</p>
+          </div>
+          <button type="button" class="report-dialog-close" id="report-dialog-close" aria-label="보고서 닫기">×</button>
+        </header>
+        <div class="report-dialog-tabs" role="tablist" aria-label="문서형 리포트 팀 선택">
+          <button type="button" class="active" data-dialog-report-team="trend" role="tab">AI 트렌드 TOP 10</button>
+          <button type="button" data-dialog-report-team="vmware" role="tab">VMware 이슈 10</button>
+        </div>
+        <div class="report-dialog-body" id="report-dialog-body" aria-live="polite"></div>
+      </div>
+    </dialog>
 
     <div class="person-popover" id="person-popover" role="dialog" aria-modal="false" aria-labelledby="popover-name" hidden>
       <button type="button" class="popover-close" aria-label="직원 상세 닫기">×</button>

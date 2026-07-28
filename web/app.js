@@ -623,6 +623,7 @@ let dialogueTimer = null;
 let companyState = null;
 let selectedCandidateId = null;
 let selectedReportTeam = "trend";
+let selectedDialogReportTeam = "trend";
 let attendanceComplete = false;
 let localBridge = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 const manualWorkTimers = new Map();
@@ -1482,6 +1483,7 @@ function renderDailyReports(state) {
   const reports = state?.dailyReports || { vmware: [], trend: [] };
   const allCount = (reports.vmware?.length || 0) + (reports.trend?.length || 0);
   document.getElementById("report-count").textContent = `${allCount} / 20`;
+  document.getElementById("open-report-viewer").disabled = allCount === 0;
   document.querySelectorAll("[data-report-team]").forEach((button) => {
     button.classList.toggle("active", button.dataset.reportTeam === selectedReportTeam);
     button.setAttribute(
@@ -1546,6 +1548,105 @@ function renderDailyReports(state) {
     details.append(summary, body);
     container.append(details);
   });
+}
+
+function renderReportDialog() {
+  const reports = companyState?.dailyReports || { vmware: [], trend: [] };
+  const items = reports[selectedDialogReportTeam] || [];
+  const teamName =
+    selectedDialogReportTeam === "trend"
+      ? "오늘의 AI 트렌드 TOP 10"
+      : "오늘의 VMware 이슈 10";
+  document.getElementById("report-dialog-title").textContent = teamName;
+  document.getElementById("report-dialog-subtitle").textContent =
+    `${companyState?.date || "오늘"} · 공식·지정 출처 ${items.length}개 전수 검토`;
+  document.querySelectorAll("[data-dialog-report-team]").forEach((button) => {
+    const selected = button.dataset.dialogReportTeam === selectedDialogReportTeam;
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-selected", String(selected));
+  });
+
+  const body = document.getElementById("report-dialog-body");
+  body.replaceChildren();
+  if (!items.length) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "report-dialog-placeholder";
+    placeholder.textContent =
+      "표시할 전체 리포트가 없습니다. 로컬 콘솔에서 오늘 조사가 완료되면 문서 뷰어를 사용할 수 있습니다.";
+    body.append(placeholder);
+    return;
+  }
+
+  const passed = items.filter((item) => item.qaStatus === "통과").length;
+  const summary = document.createElement("section");
+  summary.className = "report-document-summary";
+  const summaryLabel = document.createElement("span");
+  summaryLabel.textContent = "REPORT SUMMARY";
+  const summaryTitle = document.createElement("strong");
+  summaryTitle.textContent = `${items.length}개 전체 항목 · 검수 통과 ${passed}개 · 참고 ${items.length - passed}개`;
+  const summaryCopy = document.createElement("p");
+  summaryCopy.textContent =
+    "각 항목의 핵심 결론과 실무 영향, 권고 조치를 순서대로 정리했습니다. 원문은 항목 하단에서 새 탭으로 확인할 수 있습니다.";
+  summary.append(summaryLabel, summaryTitle, summaryCopy);
+  body.append(summary);
+
+  items.forEach((item) => {
+    const article = document.createElement("article");
+    article.className = "report-document-item";
+    const heading = document.createElement("div");
+    heading.className = "report-document-heading";
+    const rank = document.createElement("b");
+    rank.textContent = String(item.rank).padStart(2, "0");
+    const title = document.createElement("h3");
+    title.textContent = item.title;
+    const qa = document.createElement("span");
+    qa.className = item.qaStatus === "통과" ? "passed" : "reference";
+    qa.textContent = item.qaStatus === "통과" ? "검수 통과" : "참고";
+    heading.append(rank, title, qa);
+
+    const meta = document.createElement("p");
+    meta.className = "report-document-meta";
+    meta.textContent = `${item.source} · ${item.published} · ${item.score}/100`;
+    article.append(heading, meta);
+
+    [
+      ["핵심 결론", item.summary],
+      ["실무 영향", item.whyNow],
+      ["권고 조치", item.practicalAction],
+      ["제품·버전", item.productVersion],
+    ].forEach(([label, value]) => {
+      if (!value) return;
+      const section = document.createElement("section");
+      const sectionTitle = document.createElement("h4");
+      const sectionCopy = document.createElement("p");
+      sectionTitle.textContent = label;
+      sectionCopy.textContent = value;
+      section.append(sectionTitle, sectionCopy);
+      article.append(section);
+    });
+
+    const source = document.createElement("a");
+    source.href = item.url;
+    source.target = "_blank";
+    source.rel = "noreferrer";
+    source.textContent = "원문 확인 ↗";
+    article.append(source);
+    body.append(article);
+  });
+}
+
+function openReportDialog() {
+  const dialog = document.getElementById("report-dialog");
+  selectedDialogReportTeam = selectedReportTeam;
+  renderReportDialog();
+  if (!dialog.open) dialog.showModal();
+  document.body.classList.add("report-dialog-open");
+}
+
+function closeReportDialog() {
+  const dialog = document.getElementById("report-dialog");
+  if (dialog.open) dialog.close();
+  document.body.classList.remove("report-dialog-open");
 }
 
 function renderManualTasks(tasks = []) {
@@ -1664,6 +1765,7 @@ function renderCompanyState(state) {
   companyState = state;
   renderDailyReports(state);
   renderManualTasks(state?.manualTasks || []);
+  if (document.getElementById("report-dialog").open) renderReportDialog();
   const storedCandidates = state?.approvalCandidates || [];
   const approvalStageVisible =
     attendanceComplete &&
@@ -2356,6 +2458,21 @@ function setupUI() {
       selectedReportTeam = button.dataset.reportTeam;
       renderDailyReports(companyState);
     });
+  });
+  document.getElementById("open-report-viewer").addEventListener("click", openReportDialog);
+  document.getElementById("report-dialog-close").addEventListener("click", closeReportDialog);
+  document.querySelectorAll("[data-dialog-report-team]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedDialogReportTeam = button.dataset.dialogReportTeam;
+      renderReportDialog();
+    });
+  });
+  const reportDialog = document.getElementById("report-dialog");
+  reportDialog.addEventListener("cancel", () => {
+    document.body.classList.remove("report-dialog-open");
+  });
+  reportDialog.addEventListener("click", (event) => {
+    if (event.target === reportDialog) closeReportDialog();
   });
   document.getElementById("task-submit").addEventListener("click", dispatchTask);
   document.getElementById("task-text").addEventListener("keydown", (event) => {
