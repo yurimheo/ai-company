@@ -790,30 +790,6 @@ h2 {
   white-space: nowrap;
 }
 
-.operation-actions {
-  display: grid;
-  justify-items: end;
-  gap: 5px;
-}
-
-.operation-actions button {
-  padding: 4px 6px;
-  color: #785369;
-  background: #fff0f5;
-  border: 1px solid #d59ab0;
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: "Galmuri9", sans-serif;
-  font-size: 8px;
-  font-weight: 900;
-  white-space: nowrap;
-}
-
-.operation-actions button:hover {
-  color: #fff;
-  background: #c76086;
-}
-
 .operation-row.dormant {
   opacity: 0.72;
 }

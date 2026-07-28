@@ -794,7 +794,7 @@ function clearAutoAdvance() {
 
 function scheduleAutoAdvance() {
   clearAutoAdvance();
-  if (!day.started || day.step === 7 || day.step >= 12) return;
+  if (!day.started || day.step === 3 || day.step === 7 || day.step >= 12) return;
   const delay = day.step === 6 ? 12_000 : [5, 9, 10].includes(day.step) ? 5200 : 3600;
   autoAdvanceTimer = window.setTimeout(() => {
     if (!day.started || day.step === 7 || day.step >= 12) return;
@@ -885,7 +885,7 @@ function meetingLine(person, departmentId, leadersMeeting = false) {
     .replaceAll("{mate2}", cuteName(members[2]));
 }
 
-function runMeeting(group, label, leadersMeeting = false) {
+function runMeeting(group, label, leadersMeeting = false, onComplete = null) {
   const meetingRoom = rooms.meeting;
   const savedStatuses = new Map(group.map((person) => [person.id, person.status]));
   const outsideOccupants = occupiedTiles();
@@ -910,8 +910,6 @@ function runMeeting(group, label, leadersMeeting = false) {
         });
         const line = meetingLine(person, person.departmentId, leadersMeeting);
         showDialogue(person, line, 2400);
-        brief(`${person.name}: “${line}”`);
-        logActivity(`${person.name}의 한마디: ${line}`);
         logConversation(label, person, line);
       }, index * 2600);
     });
@@ -926,6 +924,7 @@ function runMeeting(group, label, leadersMeeting = false) {
         refreshStatusUI();
         brief(`${label} 회의가 끝났어요. 전원이 원래 자리로 복귀합니다.`);
         logActivity(`${label} 회의를 마쳤어요.`);
+        onComplete?.();
       },
       group.length * 2600 + 1600,
     );
@@ -1289,6 +1288,18 @@ function applyStage(step) {
     showDialogue(team("trend")[0], "AI 공식 소스에서 오늘의 트렌드 10개를 선별 중이에요.");
     brief("VMware팀은 최신 이슈 10개, IT트렌드팀은 AI 트렌드 10개를 조사 중이에요.");
     logActivity("각 팀이 10개씩 수집하고 출처·최신성을 확인 중이에요.");
+    window.setTimeout(() => {
+      if (day.step !== 3) return;
+      runMeeting(team("vmware"), "VMware팀", false, () => {
+        if (day.step !== 3) return;
+        window.setTimeout(() => {
+          if (day.step !== 3) return;
+          runMeeting(team("trend"), "IT트렌드팀", false, () => {
+            if (day.step === 3) applyStage(4);
+          });
+        }, 700);
+      });
+    }, 700);
   } else if (step === 4) {
     setTeamStatus("brand", "진행 중", { home: true });
     showDialogue(team("brand")[0], "두 팀의 20개 안건을 실무 가치와 중복 여부로 정리할게요.");
@@ -2235,15 +2246,6 @@ function setupUI() {
 
   document.querySelectorAll("[data-decision]").forEach((button) => {
     button.addEventListener("click", () => handleDecision(button.dataset.decision));
-  });
-  document.querySelectorAll("[data-team-meeting]").forEach((button) => {
-    button.addEventListener("click", () => {
-      callTeamMeeting(button.dataset.teamMeeting);
-      document.querySelector(".brief-panel").scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
   });
   document.querySelector(".popover-close").addEventListener("click", closePopover);
   document.getElementById("popover-approve").addEventListener("click", () => {
