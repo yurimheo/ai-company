@@ -28,6 +28,8 @@ const SPECIES = [
   "human",
 ];
 
+const OFFICE_SESSION_KEY = "yurim-ai-company-office-session-v2";
+
 const DEPARTMENTS = {
   vmware: {
     name: "VMware팀",
@@ -140,57 +142,57 @@ const TEAM_ALIASES = Object.fromEntries(
 
 const ROSTER = {
   vmware: [
-    ["코끼리 몬티", "팀장", "vSphere"],
-    ["코끼리 두리", "팀원", "VKS·Automation 릴리즈 추적"],
-    ["코끼리 노아", "팀원", "vSphere·인프라 동향 조사"],
+    ["코끼리 브이스피어", "팀장", "VMware 조사 총괄"],
+    ["코끼리 릴리즈", "팀원", "VKS·Automation 릴리즈 추적"],
+    ["코끼리 패치", "팀원", "vSphere 버그·패치 조사"],
   ],
   k8s: [
-    ["돌고래 파일럿", "팀장", "Helm"],
-    ["돌고래 니모", "팀원", "공식 릴리즈·CNCF 추적"],
-    ["돌고래 소나", "팀원", "매니페스트·명령어 검증"],
+    ["돌고래 헬름", "팀장", "Kubernetes 업무 설계"],
+    ["돌고래 릴리즈", "팀원", "공식 릴리즈·CNCF 추적"],
+    ["돌고래 매니페스트", "팀원", "매니페스트·명령어 검증"],
   ],
   linux: [
     ["펭귄 턱스", "팀장", "Tux"],
     ["펭귄 커널", "팀원", "배포판·커널 릴리즈 추적"],
-    ["펭귄 쉘리", "팀원", "CLI 명령어 검증"],
+    ["펭귄 쉘", "팀원", "CLI 명령어 검증"],
   ],
   trend: [
-    ["여우 스카우트", "팀장", "Radar"],
-    ["여우 노즈", "팀원", "인프라·클라우드 동향 수집"],
-    ["여우 클루", "팀원", "실무 적용점 도출"],
+    ["여우 레이더", "팀장", "AI 트렌드 조사 총괄"],
+    ["여우 클라우드", "팀원", "인프라·클라우드 동향 수집"],
+    ["여우 시그널", "팀원", "실무 적용 신호 도출"],
   ],
   brand: [
-    ["올빼미 세이지", "팀장", "Insight"],
-    ["올빼미 데이터", "팀원", "지표 분석"],
-    ["올빼미 미러", "팀원", "페르소나 검증"],
+    ["올빼미 인사이트", "팀장", "브랜드 분석 총괄"],
+    ["올빼미 메트릭", "팀원", "지표 분석"],
+    ["올빼미 페르소나", "팀원", "독자 적합성 검증"],
   ],
   qa: [
-    ["미어캣 보초", "팀장", "Gatekeeper"],
-    ["미어캣 스캔", "팀원", "출처·버전 검사"],
+    ["미어캣 게이트", "팀장", "검수 기준 관리"],
+    ["미어캣 소스", "팀원", "출처·버전 검사"],
     ["미어캣 톤", "팀원", "톤·금칙어 검수"],
   ],
   writer: [
-    ["비버 빌더", "팀장", "Draft"],
-    ["비버 로그", "팀원", "기술 검증"],
-    ["비버 라인", "팀원", "문장·구조 다듬기"],
+    ["비버 드래프트", "팀장", "기술노트 집필 총괄"],
+    ["비버 팩트", "팀원", "기술 검증"],
+    ["비버 문장", "팀원", "문장·구조 다듬기"],
   ],
   format: [
-    ["다람쥐 정돈", "팀장", "Format"],
-    ["다람쥐 페이지", "팀원", "텍스트·노트 포맷팅"],
+    ["다람쥐 포맷", "팀장", "콘텐츠 정리 총괄"],
+    ["다람쥐 마크다운", "팀원", "텍스트·노트 포맷팅"],
     ["다람쥐 카드", "팀원", "카드뉴스·표지"],
   ],
   review: [
-    ["거북이 사려", "팀장", "Pattern"],
-    ["거북이 넘버", "팀원", "지표 수집"],
-    ["거북이 루프", "팀원", "패턴 정리"],
+    ["거북이 리뷰", "팀장", "성과 리뷰 총괄"],
+    ["거북이 지표", "팀원", "성과 지표 수집"],
+    ["거북이 패턴", "팀원", "반복 패턴 정리"],
   ],
   auto: [
-    ["개미 리트라이", "팀장", "Cron"],
+    ["개미 크론", "팀장", "자동화 일정 관리"],
     ["개미 워치", "팀원", "모니터링"],
   ],
   secretary: [
-    ["강아지 브리프", "실장", "Chief"],
-    ["강아지 노트", "팀원", "보고 취합"],
+    ["강아지 브리프", "멍실장", "결재 브리핑"],
+    ["강아지 노트", "멍대리", "현장 회의록"],
   ],
   ceo: [["유림", "대표", "최종 결정"]],
 };
@@ -623,6 +625,56 @@ let selectedCandidateId = null;
 let attendanceComplete = false;
 let localBridge = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 const manualWorkTimers = new Map();
+let meetingNotes = [];
+
+function localDayKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const dayOfMonth = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${dayOfMonth}`;
+}
+
+function readOfficeSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(OFFICE_SESSION_KEY) || "null");
+    return saved?.date === localDayKey() ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveOfficeSession() {
+  try {
+    localStorage.setItem(
+      OFFICE_SESSION_KEY,
+      JSON.stringify({
+        date: localDayKey(),
+        attendanceStarted: true,
+        attendanceComplete,
+        started: day.started,
+        step: day.step,
+        decision: day.decision,
+        finished: day.finished,
+        meetingNotes: meetingNotes.slice(0, 20),
+        serverStatus: companyState?.status || null,
+        decidedAt: companyState?.decidedAt || null,
+      }),
+    );
+  } catch {
+    // 사생활 보호 모드처럼 localStorage가 막힌 환경에서는 현재 탭에서만 진행해요.
+  }
+}
+
+function putEveryoneAtHome() {
+  people.forEach((person) => {
+    person.visible = true;
+    person.tile = { ...person.home };
+    person.previousTile = { ...person.home };
+    person.destination = { ...person.home };
+    person.path = [];
+    person.animation = "sit";
+  });
+}
 
 function setSpeciesIcon(element, species) {
   SPECIES.forEach((name) => element.classList.remove(`species-${name}`));
@@ -749,6 +801,62 @@ function scheduleAutoAdvance() {
   }, delay);
 }
 
+const TEAM_MEETING_LINES = {
+  vmware: [
+    "오늘은 William Lam과 Broadcom 새 글을 먼저 나눠볼게요. 제품 버전과 게시일이 없는 글은 후보에서 제외하고, 운영자가 바로 확인할 수 있는 이슈만 남겨요.",
+    "VKS와 Automation 릴리스에서 업그레이드 경로, 알려진 문제, 필요한 빌드 번호를 표로 묶을게요. 같은 이슈를 반복 소개한 글은 한 건으로 합치겠습니다.",
+    "vSphere와 VCF 쪽은 증상·영향 범위·즉시 확인할 항목까지 적고 공식 원문 링크를 붙일게요. 재현 여부가 불명확하면 반드시 확인 필요로 표시하겠습니다.",
+  ],
+  k8s: [
+    "아직 정기 업무는 미정이지만, 맡게 되면 릴리스 노트와 운영 영향부터 분리해 볼게요.",
+    "CNCF와 공식 프로젝트 릴리스에서 deprecated API와 업그레이드 주의점을 추적할 수 있어요.",
+    "매니페스트와 명령어는 실제 실행 전제 조건을 함께 적어야 안전해요.",
+  ],
+  linux: [
+    "아직 정기 업무는 미정이에요. 배포판과 커널 보안 공지 중심으로 범위를 정하면 바로 시작할 수 있어요.",
+    "커널·배포판 릴리스는 지원 기간과 영향 패키지를 함께 정리하겠습니다.",
+    "CLI 예시는 배포판과 권한 조건까지 확인한 뒤 공유할게요.",
+  ],
+  trend: [
+    "OpenAI·Google AI·NVIDIA·AWS·CNCF 공식 채널을 나눠 볼게요. 단순 출시 소식보다 오늘 업무 방식을 바꿀 수 있는 신호를 우선해요.",
+    "클라우드와 인프라 흐름은 비용·보안·운영 복잡도에 어떤 변화가 생기는지 한 줄씩 붙이겠습니다.",
+    "각 후보마다 ‘그래서 오늘 무엇을 해볼지’를 적을게요. 출처가 겹치거나 실무 행동이 없는 소식은 TOP 후보에서 내리겠습니다.",
+  ],
+  brand: [
+    "20개 후보가 우리 독자에게 정말 필요한지부터 볼게요. 제목만 자극적이고 저장 가치가 낮으면 점수를 주지 않겠습니다.",
+    "근거와 지표가 실제 출처에 있는지 확인하고, 숫자를 추정해서 채우지 않겠습니다.",
+    "인프라 실무자가 읽자마자 자기 환경을 점검할 수 있는지 페르소나 기준으로 보겠습니다.",
+  ],
+  qa: [
+    "후보마다 공식 원문·게시일·제품 버전을 다시 맞춰볼게요. 하나라도 근거가 흐리면 대표님께 올리지 않겠습니다.",
+    "명령어와 설정값은 실행 전제와 확인할 항목을 분리해 적겠습니다. 확인하지 않은 내용은 검증 완료처럼 쓰지 않아요.",
+    "제목·요약·카드 문구의 과장 표현을 걷어내고, 대표님이 판단할 핵심 행동이 한눈에 보이도록 정리하겠습니다.",
+  ],
+  writer: [
+    "승인된 한 건만 원문 구조와 분리해 기술노트로 다시 쓰겠습니다.",
+    "제품 버전·전제 조건·검증할 항목을 체크리스트로 만들게요.",
+    "결론이 먼저 보이도록 문단을 다듬고 중복 설명을 줄이겠습니다.",
+  ],
+  format: [
+    "기술노트의 제목·요약·본문 계층을 Obsidian에서 읽기 좋게 맞출게요.",
+    "표와 체크리스트가 깨지지 않도록 마크다운 구조를 정돈하겠습니다.",
+    "카드뉴스는 한 장에 한 메시지만 남기고 출처를 빠뜨리지 않을게요.",
+  ],
+  review: [
+    "게시 결과가 연결되기 전에는 성과 숫자를 추정하지 않겠습니다.",
+    "연결된 지표만 같은 기준으로 모아 비교할게요.",
+    "반복해서 저장되거나 반려되는 주제를 다음 기획 기준으로 정리하겠습니다.",
+  ],
+  auto: [
+    "정해진 시간에 조사 파일이 생성되는지 확인하고 실패 시 재시도 기준을 남기겠습니다.",
+    "파일 경로와 상태 변화를 감시하고, 이상이 있으면 대표 콘솔에 먼저 알릴게요.",
+  ],
+  secretary: [
+    "완료·진행·막힌 일·대표 결정 항목을 섞지 않고 짧게 보고드릴게요.",
+    "회의에서 나온 결정과 담당자를 회의록에 남겨 다음 팀이 바로 이어받게 하겠습니다.",
+  ],
+};
+
 function meetingLine(person, departmentId, leadersMeeting = false) {
   const department = DEPARTMENTS[departmentId];
   const topCandidate = companyState?.approvalCandidates?.[0];
@@ -764,10 +872,11 @@ function meetingLine(person, departmentId, leadersMeeting = false) {
   if (leadersMeeting) {
     return `${department.short}은 현재 ${person.status} 상태예요. ${person.detail} 기준으로 다음 행동을 준비할게요.`;
   }
-  if (person.role === "팀장" || person.role === "실장") {
-    return `${department.code} 기준으로 오늘 할 일과 반려 기준을 먼저 맞출게요.`;
-  }
-  return `${person.detail} 맡을게요. 확인한 결과는 한 줄로 공유하겠습니다.`;
+  const memberIndex = Math.max(0, team(departmentId).indexOf(person));
+  return (
+    TEAM_MEETING_LINES[departmentId]?.[memberIndex] ||
+    `${person.detail} 업무의 확인 기준과 다음 행동을 회의록에 남기겠습니다.`
+  );
 }
 
 function runMeeting(group, label, leadersMeeting = false) {
@@ -794,10 +903,11 @@ function runMeeting(group, label, leadersMeeting = false) {
           member.animation = member === person ? "talk" : "sit";
         });
         const line = meetingLine(person, person.departmentId, leadersMeeting);
-        showDialogue(person, line, 1400);
+        showDialogue(person, line, 2400);
         brief(`${person.name}: “${line}”`);
         logActivity(`${person.name} 보고: ${line}`);
-      }, index * 1500);
+        logConversation(label, person, line);
+      }, index * 2600);
     });
 
     window.setTimeout(
@@ -811,7 +921,7 @@ function runMeeting(group, label, leadersMeeting = false) {
         brief(`${label} 회의가 끝났어요. 전원이 원래 자리로 복귀합니다.`);
         logActivity(`${label} 회의를 마쳤어요.`);
       },
-      group.length * 1500 + 1200,
+      group.length * 2600 + 1600,
     );
   };
 
@@ -1207,10 +1317,8 @@ function applyStage(step) {
     if (!pendingApproval) {
       clearPendingApprovals();
       if (companyState?.status === "approved") {
-        day.decision = "승인";
-        brief("오늘 승인 기록을 확인했어요. 기술노트 작성 이후 단계부터 이어갑니다.");
-        logActivity("이미 승인된 오늘 안건을 확인하고 후속 단계로 이동해요.");
-        window.setTimeout(() => applyStage(8), 1400);
+        brief("오늘 승인 기록이 있지만 이 화면에서는 승인 버튼 입력을 확인하지 못했어요. 자동으로 다음 단계로 넘기지 않습니다.");
+        logActivity("승인 기록을 발견했지만 사용자 입력 확인 전 자동 진행을 차단했어요.");
       } else {
         day.decision = companyState?.decision || null;
         brief(
@@ -1275,6 +1383,7 @@ function applyStage(step) {
   if (companyState && step !== 7) renderCompanyState(companyState);
   refreshStageUI();
   refreshStatusUI();
+  saveOfficeSession();
   scheduleAutoAdvance();
 }
 
@@ -1358,6 +1467,7 @@ async function handleDecision(decision) {
         brief(`승인은 기록했지만 초안은 만들지 못했어요. 자동 진행을 멈췄습니다: ${reason}`);
         logActivity(`기술노트 작성 실패: ${reason}`);
         refreshStageUI();
+        saveOfficeSession();
         return;
       }
     } catch (error) {
@@ -1390,6 +1500,7 @@ async function handleDecision(decision) {
     selectedCandidateId = null;
     brief("보류로 기록했어요. TOP 3는 닫았고 오늘 파이프라인은 여기서 멈춥니다.");
     refreshStageUI();
+    saveOfficeSession();
   } else if (decision === "폐기") {
     clearPendingApprovals();
     selectedCandidateId = null;
@@ -1400,6 +1511,7 @@ async function handleDecision(decision) {
     returnEveryoneHome();
     brief("오늘 안은 폐기했고 결정 기록은 옵시디언에 남겼어요.");
     refreshStageUI();
+    saveOfficeSession();
   }
 }
 
@@ -1659,6 +1771,7 @@ function startAttendanceAnimation() {
   });
   brief("페이지가 열렸어요. 전 직원이 출입구부터 차례로 출근합니다.");
   logActivity("전원 출근 애니메이션을 시작했어요.");
+  saveOfficeSession();
 
   const spawnNext = () => {
     if (index >= people.length) return;
@@ -1679,6 +1792,7 @@ function startAttendanceAnimation() {
         brief(`전원 ${people.length}명 출근 완료예요. 이제 아침 업무를 시작합니다.`);
         logActivity("전 직원이 각자 자리에 도착했어요.");
         if (companyState) renderCompanyState(companyState);
+        saveOfficeSession();
         window.setTimeout(startDay, 900);
       }
     });
@@ -1695,6 +1809,47 @@ function startAttendanceAnimation() {
     window.setTimeout(spawnNext, 220);
   };
   spawnNext();
+}
+
+function restoreOfficeSession(saved) {
+  clearAutoAdvance();
+  attendanceComplete = true;
+  putEveryoneAtHome();
+  meetingNotes = Array.isArray(saved.meetingNotes) ? saved.meetingNotes : [];
+  restoreConversationLog(meetingNotes);
+
+  day.started = saved.started !== false;
+  day.finished = Boolean(saved.finished);
+  day.decision = saved.decision || null;
+  let restoredStep = Math.max(1, Math.min(12, Number(saved.step) || 1));
+  const pendingStatus = [
+    "approval_pending",
+    "revision_requested",
+    "writer_failed",
+  ].includes(companyState?.status);
+
+  if (pendingStatus && restoredStep >= 7) {
+    restoredStep = 7;
+    day.decision = null;
+    day.finished = false;
+  } else if (["held", "discarded"].includes(companyState?.status)) {
+    restoredStep = 7;
+    day.decision = companyState.decision || saved.decision || null;
+  } else if (
+    companyState?.status === "approved" &&
+    saved.decision === "승인" &&
+    restoredStep < 8
+  ) {
+    restoredStep = 8;
+  }
+
+  applyStage(restoredStep);
+  brief(
+    restoredStep === 7 && !day.decision
+      ? "새로고침 전 상태를 복원했어요. 대표님이 결정할 때까지 승인 단계에서 그대로 기다립니다."
+      : `새로고침 전 오늘 업무 ${restoredStep}단계를 복원했어요. 출근부터 다시 시작하지 않습니다.`,
+  );
+  logActivity(`오늘 업무 ${restoredStep}단계를 복원했어요.`);
 }
 
 function secretaryVisit(message, logMessage) {
@@ -1855,6 +2010,61 @@ function logActivity(message) {
   item.append(time, text);
   log.prepend(item);
   while (log.children.length > 18) log.lastElementChild.remove();
+}
+
+function logConversation(meetingLabel, person, message) {
+  const transcript = document.getElementById("meeting-transcript");
+  transcript.querySelector(".transcript-empty")?.remove();
+  const item = document.createElement("li");
+  const avatar = document.createElement("span");
+  avatar.className = `staff-icon species-${person.species}`;
+  avatar.setAttribute("aria-hidden", "true");
+  const copy = document.createElement("div");
+  copy.className = "transcript-copy";
+  const speaker = document.createElement("b");
+  speaker.textContent = person.name;
+  const meta = document.createElement("small");
+  meta.textContent = `${meetingLabel} · ${person.role} · ${document.getElementById("office-clock").textContent}`;
+  const line = document.createElement("span");
+  line.textContent = message;
+  copy.append(speaker, meta, line);
+  item.append(avatar, copy);
+  transcript.prepend(item);
+  while (transcript.children.length > 20) transcript.lastElementChild.remove();
+  meetingNotes.unshift({
+    meetingLabel,
+    personId: person.id,
+    personName: person.name,
+    species: person.species,
+    role: person.role,
+    clock: document.getElementById("office-clock").textContent,
+    message,
+  });
+  meetingNotes = meetingNotes.slice(0, 20);
+  saveOfficeSession();
+}
+
+function restoreConversationLog(notes = []) {
+  const transcript = document.getElementById("meeting-transcript");
+  if (!notes.length) return;
+  transcript.replaceChildren();
+  notes.slice(0, 20).forEach((note) => {
+    const item = document.createElement("li");
+    const avatar = document.createElement("span");
+    avatar.className = `staff-icon species-${note.species}`;
+    avatar.setAttribute("aria-hidden", "true");
+    const copy = document.createElement("div");
+    copy.className = "transcript-copy";
+    const speaker = document.createElement("b");
+    speaker.textContent = note.personName;
+    const meta = document.createElement("small");
+    meta.textContent = `${note.meetingLabel} · ${note.role} · ${note.clock}`;
+    const line = document.createElement("span");
+    line.textContent = note.message;
+    copy.append(speaker, meta, line);
+    item.append(avatar, copy);
+    transcript.append(item);
+  });
 }
 
 function refreshStageUI() {
@@ -2098,5 +2308,12 @@ refreshStageUI();
 refreshStatusUI();
 requestAnimationFrame(drawPeople);
 requestAnimationFrame(() => fitZoom());
-connectVaultAndResearch();
-startAttendanceAnimation();
+
+async function bootstrapOffice() {
+  await connectVaultAndResearch();
+  const saved = readOfficeSession();
+  if (saved?.attendanceStarted) restoreOfficeSession(saved);
+  else startAttendanceAnimation();
+}
+
+bootstrapOffice();

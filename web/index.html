@@ -67,7 +67,7 @@
             <div class="map-dialogue" id="map-dialogue" hidden>
               <span class="map-dialogue-avatar staff-icon species-dog" id="dialogue-avatar" aria-hidden="true"></span>
               <div>
-                <strong id="dialogue-speaker">강아지 브리프</strong>
+                <strong id="dialogue-speaker">브리프 멍실장</strong>
                 <p id="dialogue-text">출근 준비 중이에요.</p>
               </div>
             </div>
@@ -162,7 +162,7 @@
           <div class="panel-heading small">
             <div>
               <p class="eyebrow">SECRETARY LOG</p>
-              <h2>강아지 브리프의 보고</h2>
+              <h2>브리프 멍실장의 결재 브리핑</h2>
             </div>
           </div>
           <div class="secretary-message">
@@ -170,6 +170,16 @@
             <p id="secretary-bubble">전 직원 31명과 대표님이 업무 준비 중이에요.</p>
           </div>
           <ol class="activity-log" id="activity-log" aria-live="polite"></ol>
+          <div class="transcript-heading">
+            <span class="staff-icon species-dog" aria-hidden="true"></span>
+            <div>
+              <p class="eyebrow">MEETING MINUTES</p>
+              <h3>노트 멍대리의 회의록 한입</h3>
+            </div>
+          </div>
+          <ol class="meeting-transcript" id="meeting-transcript" aria-live="polite">
+            <li class="transcript-empty">회의가 열리면 팀원들의 실제 보고 내용을 차곡차곡 적어둘게요.</li>
+          </ol>
         </section>
 
         <section class="panel roster-panel">
@@ -186,7 +196,7 @@
       </aside>
     </main>
 
-    <div class="person-popover" id="person-popover" hidden>
+    <div class="person-popover" id="person-popover" role="dialog" aria-modal="false" aria-labelledby="popover-name" hidden>
       <button type="button" class="popover-close" aria-label="직원 상세 닫기">×</button>
       <span class="popover-avatar staff-icon" id="popover-avatar"></span>
       <div>
