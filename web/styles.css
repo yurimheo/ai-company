@@ -290,40 +290,33 @@ h2 {
   max-width: 1680px;
   margin: 0 auto;
   padding: 0 clamp(12px, 2.5vw, 40px) 56px;
+}
+
+.office-column {
+  display: block;
+}
+
+.map-panel {
+  margin-bottom: 18px;
+}
+
+.dashboard-columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
 }
 
-.office-column,
+.dashboard-stack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+}
+
 .console-column {
-  display: contents;
-}
-
-.map-panel {
-  grid-column: 1 / -1;
-  grid-row: 1;
-}
-
-.timeline-panel {
-  grid-column: 1;
-  grid-row: 2;
-}
-
-.command-panel {
-  grid-column: 2;
-  grid-row: 2;
-}
-
-.brief-panel {
-  grid-column: 1;
-  grid-row: 3;
-}
-
-.roster-panel {
-  grid-column: 2;
-  grid-row: 3;
+  display: flex;
 }
 
 .panel {
@@ -1655,17 +1648,8 @@ input {
 }
 
 @media (max-width: 900px) {
-  .app-shell {
+  .dashboard-columns {
     grid-template-columns: 1fr;
-  }
-
-  .map-panel,
-  .timeline-panel,
-  .command-panel,
-  .brief-panel,
-  .roster-panel {
-    grid-column: 1;
-    grid-row: auto;
   }
 
   .pipeline {

@@ -79,7 +79,11 @@
           </div>
         </div>
 
-        <div class="panel timeline-panel">
+      </section>
+
+      <div class="dashboard-columns">
+        <div class="dashboard-stack">
+        <section class="panel timeline-panel">
           <div class="panel-heading small">
             <div>
               <p class="eyebrow">12-STEP DAY</p>
@@ -95,10 +99,34 @@
               <p id="stage-description">페이지를 열면 전원이 출근하고 아침 조사를 자동으로 시작해요.</p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <aside class="console-column" aria-label="대표 업무 콘솔">
+        <section class="panel brief-panel">
+          <div class="panel-heading small">
+            <div>
+              <p class="eyebrow">SECRETARY LOG</p>
+              <h2>브리프 멍실장의 결재 브리핑</h2>
+            </div>
+          </div>
+          <div class="secretary-message">
+            <span class="secretary-avatar staff-icon species-dog" aria-hidden="true"></span>
+            <p id="secretary-bubble">전 직원 31명과 대표님이 업무 준비 중이에요.</p>
+          </div>
+          <ol class="activity-log" id="activity-log" aria-live="polite"></ol>
+          <div class="transcript-heading">
+            <span class="staff-icon species-dog" aria-hidden="true"></span>
+            <div>
+              <p class="eyebrow">MEETING MINUTES</p>
+              <h3>노트 멍대리의 회의록 한입</h3>
+            </div>
+          </div>
+          <ol class="meeting-transcript" id="meeting-transcript" aria-live="polite">
+            <li class="transcript-empty">회의가 열리면 팀원들의 실제 보고 내용을 차곡차곡 적어둘게요.</li>
+          </ol>
+        </section>
+        </div>
+
+      <aside class="dashboard-stack console-column" aria-label="대표 업무 콘솔">
         <section class="panel command-panel">
           <div class="console-title">
             <div>
@@ -158,30 +186,6 @@
           <p class="approval-only-note">대표님은 조사 결과를 읽고 승인 단계에서만 결정하면 돼요. 나머지는 직원들이 이어서 처리합니다.</p>
         </section>
 
-        <section class="panel brief-panel">
-          <div class="panel-heading small">
-            <div>
-              <p class="eyebrow">SECRETARY LOG</p>
-              <h2>브리프 멍실장의 결재 브리핑</h2>
-            </div>
-          </div>
-          <div class="secretary-message">
-            <span class="secretary-avatar staff-icon species-dog" aria-hidden="true"></span>
-            <p id="secretary-bubble">전 직원 31명과 대표님이 업무 준비 중이에요.</p>
-          </div>
-          <ol class="activity-log" id="activity-log" aria-live="polite"></ol>
-          <div class="transcript-heading">
-            <span class="staff-icon species-dog" aria-hidden="true"></span>
-            <div>
-              <p class="eyebrow">MEETING MINUTES</p>
-              <h3>노트 멍대리의 회의록 한입</h3>
-            </div>
-          </div>
-          <ol class="meeting-transcript" id="meeting-transcript" aria-live="polite">
-            <li class="transcript-empty">회의가 열리면 팀원들의 실제 보고 내용을 차곡차곡 적어둘게요.</li>
-          </ol>
-        </section>
-
         <section class="panel roster-panel">
           <div class="panel-heading small">
             <div>
@@ -194,6 +198,7 @@
           <div class="roster-list" id="roster-list"></div>
         </section>
       </aside>
+      </div>
     </main>
 
     <div class="person-popover" id="person-popover" role="dialog" aria-modal="false" aria-labelledby="popover-name" hidden>
