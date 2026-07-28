@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "title": { "type": "string" },
+    "conclusion": { "type": "string" },
+    "problem": { "type": "string" },
+    "causeOrContext": { "type": "string" },
+    "keyFacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "actionSteps": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "verification": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "caveats": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "summary": { "type": "string" },
+    "cardSlides": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 8,
+      "items": { "type": "string" }
+    }
+  },
+  "required": [
+    "title",
+    "conclusion",
+    "problem",
+    "causeOrContext",
+    "keyFacts",
+    "actionSteps",
+    "verification",
+    "caveats",
+    "summary",
+    "cardSlides"
+  ]
+}

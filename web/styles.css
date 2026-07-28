@@ -269,7 +269,7 @@ h2 {
   margin: 0 auto;
   padding: 0 clamp(12px, 2.5vw, 40px) 56px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 480px);
   gap: 18px;
   align-items: start;
 }
@@ -835,16 +835,16 @@ select {
 
 .approval-box {
   margin: 0 16px;
-  padding: 11px;
+  padding: 13px;
   background: #f3e9d7;
   border: 2px dashed #c6ad86;
   border-radius: 11px;
 }
 
 .approval-candidates {
-  margin-top: 10px;
+  margin-top: 12px;
   display: grid;
-  gap: 7px;
+  gap: 10px;
 }
 
 .candidate-placeholder {
@@ -860,9 +860,9 @@ select {
 .candidate-card {
   position: relative;
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 6px;
-  padding: 9px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  padding: 11px;
   background: #fffaf2;
   border: 2px solid #ddc8aa;
   border-radius: 8px;
@@ -886,39 +886,164 @@ select {
   accent-color: var(--rose);
 }
 
-.candidate-card strong,
-.candidate-card small,
-.candidate-card span {
-  display: block;
-}
-
 .candidate-card a {
   width: fit-content;
   margin-top: 5px;
   display: block;
   color: var(--sage-dark);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.candidate-card strong {
-  font-size: 9px;
-  line-height: 1.45;
+.candidate-topline {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
-.candidate-card small {
-  margin-top: 3px;
+.candidate-rank,
+.candidate-team,
+.candidate-score {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 8px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.candidate-rank {
+  color: #fffaf0;
+  background: var(--rose);
+}
+
+.candidate-team {
+  color: #536b57;
+  background: #e0ead8;
+  border: 1px solid #bdcfb4;
+}
+
+.candidate-score {
+  margin-left: auto;
+  color: #7f4b35;
+  background: #ffe2ad;
+  border: 1px solid #e4bd78;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+}
+
+.candidate-title {
+  margin-top: 8px;
+  display: block;
+  font-family: "A2z", "Galmuri9", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.32;
+  letter-spacing: -0.01em;
+}
+
+.candidate-conclusion {
+  margin: 7px 0 0;
+  padding: 8px 9px;
+  color: #5d4d48;
+  background: #fff3d9;
+  border-left: 3px solid #e1af62;
+  border-radius: 0 6px 6px 0;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.candidate-more {
+  display: none;
+  margin-top: 7px;
+  color: var(--sage-dark);
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.candidate-card:not(:has(input:checked)) .candidate-brief,
+.candidate-card:not(:has(input:checked)) .candidate-breakdown,
+.candidate-card:not(:has(input:checked)) .candidate-qa,
+.candidate-card:not(:has(input:checked)) .candidate-verification {
+  display: none;
+}
+
+.candidate-card:not(:has(input:checked)) .candidate-more {
+  display: block;
+}
+
+.candidate-brief {
+  margin: 9px 0 0;
+  display: grid;
+  grid-template-columns: 55px minmax(0, 1fr);
+  gap: 5px 7px;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.candidate-brief dt {
+  color: var(--sage-dark);
+  font-weight: 900;
+}
+
+.candidate-brief dd {
+  margin: 0;
+  color: #665752;
+}
+
+.candidate-breakdown {
+  margin-top: 9px;
+  padding: 7px;
+  color: #725943;
+  background: #f4ead5;
+  border: 1px dashed #d3b581;
+  border-radius: 6px;
+  font-family: ui-monospace, "Galmuri9", monospace;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.candidate-qa,
+.candidate-verification {
+  margin: 7px 0 0;
+  padding-left: 17px;
+  position: relative;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.candidate-qa {
+  color: #47735e;
+}
+
+.candidate-qa::before,
+.candidate-verification::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.candidate-qa::before {
+  content: "✓";
+}
+
+.candidate-verification {
+  color: #8a5267;
+}
+
+.candidate-verification::before {
+  content: "!";
+}
+
+.candidate-source {
+  margin-top: 8px;
+  display: block;
   color: var(--ink-soft);
   font-size: 8px;
-}
-
-.candidate-card span {
-  margin-top: 4px;
-  color: #8a5267;
-  font-size: 8px;
-  line-height: 1.4;
 }
 
 .approval-box.ready {

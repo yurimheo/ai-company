@@ -693,7 +693,7 @@ function clearAutoAdvance() {
 function scheduleAutoAdvance() {
   clearAutoAdvance();
   if (!day.started || day.step === 7 || day.step >= 12) return;
-  const delay = day.step === 6 ? 9000 : [5, 9, 10].includes(day.step) ? 5200 : 3600;
+  const delay = day.step === 6 ? 12_000 : [5, 9, 10].includes(day.step) ? 5200 : 3600;
   autoAdvanceTimer = window.setTimeout(() => {
     if (!day.started || day.step === 7 || day.step >= 12) return;
     applyStage(day.step + 1);
@@ -702,6 +702,16 @@ function scheduleAutoAdvance() {
 
 function meetingLine(person, departmentId, leadersMeeting = false) {
   const department = DEPARTMENTS[departmentId];
+  const topCandidate = companyState?.approvalCandidates?.[0];
+  if (departmentId === "qa" && topCandidate) {
+    if (person.detail.includes("출처")) {
+      return `${topCandidate.source} 원문과 ${topCandidate.productVersion || "제품·버전"}을 확인했어요. 남은 확인은 ${topCandidate.verificationNeeded}`;
+    }
+    if (person.detail.includes("톤")) {
+      return `대표님이 판단할 핵심 행동은 “${topCandidate.practicalAction}”이에요. ${topCandidate.contentAngle}로 기획했어요.`;
+    }
+    return `TOP 1은 ${topCandidate.score}점의 “${topCandidate.title}”이에요. 선정 근거는 ${topCandidate.reason}`;
+  }
   if (leadersMeeting) {
     return `${department.short}은 현재 ${person.status} 상태예요. ${person.detail} 기준으로 다음 행동을 준비할게요.`;
   }
@@ -1119,8 +1129,16 @@ function applyStage(step) {
     const attendees = [team("vmware")[0], team("trend")[0], team("qa")[0]];
     sendPeopleToRoom(attendees, "meeting", "승인 대기", "sit", 0);
     setStatus(team("ceo")[0], "대기", { home: true });
-    showDialogue(team("qa")[0], "TOP 3와 선정 이유, 원문 링크를 올렸습니다. 대표님 결정만 기다릴게요.", 4200);
-    brief("TOP 3가 준비됐어요. 제목·출처·선정 이유를 확인하고 한 건을 결정해 주세요.");
+    const topCandidate = companyState?.approvalCandidates?.[0];
+    const approvalMessage = topCandidate
+      ? `20개를 전수 평가했어요. TOP 1은 ${topCandidate.score}점의 “${topCandidate.title}”이고, 오늘 행동은 “${topCandidate.practicalAction}”입니다.`
+      : "20개 전수 평가가 끝나면 점수 근거와 오늘 행동이 포함된 TOP 3만 올릴게요.";
+    showDialogue(team("qa")[0], approvalMessage, 5600);
+    brief(
+      topCandidate
+        ? "TOP 3 결재 브리프가 준비됐어요. 결론·오늘 행동·버전·점수·남은 확인사항을 읽고 한 건만 결정해 주세요."
+        : "편집회의 결과를 기다리고 있어요. 검수된 TOP 3가 오기 전에는 승인할 수 없습니다.",
+    );
     logActivity("대표 승인 대기. AI 파이프라인을 멈췄어요.");
   } else if (step === 8) {
     activePeople.concat(team("qa")).forEach((person) => {
@@ -1208,6 +1226,15 @@ async function handleDecision(decision) {
 
   if (localBridge) {
     try {
+      if (decision === "승인") {
+        brief(
+          `“${candidate?.title}” 원문을 다시 읽고 있어요. 기술노트 작성팀이 초안·검증 체크리스트·카드뉴스 문구까지 작성합니다.`,
+        );
+        document.getElementById("approval-summary").textContent =
+          "승인안 집필 중 · 원문 대조와 구조화가 끝날 때까지 잠시만 기다려 주세요.";
+      } else {
+        brief(`${decision} 결정을 기록하고 후속 팀에 전달하고 있어요.`);
+      }
       const response = await fetch("/api/approval", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1220,6 +1247,15 @@ async function handleDecision(decision) {
       companyState = await response.json();
       renderCompanyState(companyState);
       logActivity("대표 결정을 03_성과기록 폴더에 저장했어요.");
+      if (companyState.status === "writer_failed") {
+        day.decision = null;
+        const reason =
+          companyState.errors?.at(-1) || "기술노트 작성 결과를 검증하지 못했어요.";
+        brief(`승인은 기록했지만 초안은 만들지 못했어요. 자동 진행을 멈췄습니다: ${reason}`);
+        logActivity(`기술노트 작성 실패: ${reason}`);
+        refreshStageUI();
+        return;
+      }
     } catch (error) {
       day.decision = null;
       brief(`옵시디언 기록에 실패했어요: ${error.message}`);
@@ -1258,17 +1294,22 @@ function renderCompanyState(state) {
   if (!candidates.length) {
     const placeholder = document.createElement("div");
     placeholder.className = "candidate-placeholder";
-    placeholder.textContent =
-      state?.status === "researching"
-        ? "두 팀이 공식 소스를 조사하고 있어요…"
-        : "표시할 승인 후보가 아직 없어요.";
+    if (state?.status === "researching") {
+      placeholder.textContent = `현재 ${state.phase || "공식 소스 조사"} 중이에요…`;
+    } else if (state?.status === "editorial_failed") {
+      placeholder.textContent = `편집회의가 검수 기준을 통과하지 못해 TOP 3를 올리지 않았어요. ${state.errors?.at(-1) || ""}`;
+    } else if (state?.status === "writer_failed") {
+      placeholder.textContent = `승인안 집필이 검증 단계에서 멈췄어요. ${state.errors?.at(-1) || ""}`;
+    } else {
+      placeholder.textContent = "표시할 승인 후보가 아직 없어요.";
+    }
     container.append(placeholder);
   } else {
     if (!candidates.some((candidate) => candidate.id === selectedCandidateId)) {
       selectedCandidateId = candidates[0].id;
     }
     candidates.forEach((candidate, index) => {
-      const card = document.createElement("div");
+      const card = document.createElement("article");
       card.className = "candidate-card";
       const input = document.createElement("input");
       input.type = "radio";
@@ -1283,18 +1324,73 @@ function renderCompanyState(state) {
       });
       const copy = document.createElement("label");
       copy.htmlFor = input.id;
+      const topline = document.createElement("div");
+      topline.className = "candidate-topline";
+      const rank = document.createElement("span");
+      rank.className = "candidate-rank";
+      rank.textContent = `TOP ${candidate.selectionRank || index + 1}`;
+      const teamName = document.createElement("span");
+      teamName.className = "candidate-team";
+      teamName.textContent = candidate.team;
+      const score = document.createElement("b");
+      score.className = "candidate-score";
+      score.textContent = `${candidate.score}/100`;
+      topline.append(rank, teamName, score);
       const title = document.createElement("strong");
-      title.textContent = `${index + 1}. [${candidate.team}] ${candidate.title}`;
+      title.className = "candidate-title";
+      title.textContent = candidate.title;
+      const conclusion = document.createElement("p");
+      conclusion.className = "candidate-conclusion";
+      conclusion.textContent = candidate.summary;
+      const moreHint = document.createElement("span");
+      moreHint.className = "candidate-more";
+      moreHint.textContent = "선택하면 판단 근거와 오늘 행동을 펼쳐볼 수 있어요.";
+      const details = document.createElement("dl");
+      details.className = "candidate-brief";
+      [
+        ["왜 지금", candidate.whyNow],
+        ["오늘 행동", candidate.practicalAction],
+        ["기획 각도", candidate.contentAngle],
+        ["제품·버전", candidate.productVersion],
+      ].forEach(([term, description]) => {
+        if (!description) return;
+        const dt = document.createElement("dt");
+        const dd = document.createElement("dd");
+        dt.textContent = term;
+        dd.textContent = description;
+        details.append(dt, dd);
+      });
+      const scores = candidate.scoreBreakdown || {};
+      const scoreBreakdown = document.createElement("div");
+      scoreBreakdown.className = "candidate-breakdown";
+      scoreBreakdown.textContent =
+        `브랜드 ${scores.brandFit ?? "–"}/25 · 시급성 ${scores.urgency ?? "–"}/20 · 근거 ${scores.evidence ?? "–"}/20 · 실행 ${scores.actionability ?? "–"}/20 · 차별성 ${scores.differentiation ?? "–"}/15`;
+      const qa = document.createElement("p");
+      qa.className = "candidate-qa";
+      qa.textContent = `검수 통과 · ${candidate.reason}`;
+      const verification = document.createElement("p");
+      verification.className = "candidate-verification";
+      verification.textContent = `승인 후 확인 · ${candidate.verificationNeeded}`;
       const source = document.createElement("small");
+      source.className = "candidate-source";
       source.textContent = `${candidate.source} · ${candidate.published}`;
-      const reason = document.createElement("span");
-      reason.textContent = candidate.reason;
       const link = document.createElement("a");
       link.href = candidate.url;
       link.target = "_blank";
       link.rel = "noreferrer";
-      link.textContent = "원문 확인 ↗";
-      copy.append(title, source, reason, link);
+      link.textContent = "공식 원문 확인 ↗";
+      copy.append(
+        topline,
+        title,
+        conclusion,
+        moreHint,
+        details,
+        scoreBreakdown,
+        qa,
+        verification,
+        source,
+        link,
+      );
       card.append(input, copy);
       container.append(card);
     });
@@ -1317,9 +1413,15 @@ function renderCompanyState(state) {
     state?.counts?.vmware ? `${state.counts.vmware}개 완료` : "조사 중";
   document.getElementById("trend-job-state").textContent =
     state?.counts?.trend ? `${state.counts.trend}개 완료` : "조사 중";
-  if (candidates.length) {
+  if (state?.status === "writer_failed") {
     document.getElementById("approval-summary").textContent =
-      `TOP ${candidates.length} 준비 완료 · 한 안건을 선택하면 그 결정만 옵시디언에 기록합니다.`;
+      "집필 실패 · 불완전한 초안을 저장하지 않고 승인 단계에서 멈췄습니다.";
+  } else if (state?.status === "editorial_failed") {
+    document.getElementById("approval-summary").textContent =
+      "검수 실패 · 어설픈 후보를 대신 올리지 않고 편집회의를 멈췄습니다.";
+  } else if (candidates.length) {
+    document.getElementById("approval-summary").textContent =
+      `20개 전수 평가 → 검수 통과 TOP ${candidates.length} · 한 안건만 결정하면 후속 작성은 직원들이 처리합니다.`;
   }
   refreshStageUI();
 }

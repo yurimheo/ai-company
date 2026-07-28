@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "evaluations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sourceUrl": { "type": "string" },
+          "koreanTitle": { "type": "string" },
+          "oneLine": { "type": "string" },
+          "whyNow": { "type": "string" },
+          "practicalAction": { "type": "string" },
+          "contentAngle": { "type": "string" },
+          "format": { "type": "string" },
+          "purpose": { "type": "string" },
+          "productVersion": { "type": "string" },
+          "brandFit": { "type": "integer", "minimum": 0, "maximum": 25 },
+          "urgency": { "type": "integer", "minimum": 0, "maximum": 20 },
+          "evidence": { "type": "integer", "minimum": 0, "maximum": 20 },
+          "actionability": { "type": "integer", "minimum": 0, "maximum": 20 },
+          "differentiation": { "type": "integer", "minimum": 0, "maximum": 15 },
+          "total": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "qaStatus": { "type": "string", "enum": ["통과", "반려"] },
+          "qaReason": { "type": "string" },
+          "verificationNeeded": { "type": "string" },
+          "selected": { "type": "boolean" },
+          "selectionRank": { "type": "integer", "minimum": 0, "maximum": 3 }
+        },
+        "required": [
+          "sourceUrl",
+          "koreanTitle",
+          "oneLine",
+          "whyNow",
+          "practicalAction",
+          "contentAngle",
+          "format",
+          "purpose",
+          "productVersion",
+          "brandFit",
+          "urgency",
+          "evidence",
+          "actionability",
+          "differentiation",
+          "total",
+          "qaStatus",
+          "qaReason",
+          "verificationNeeded",
+          "selected",
+          "selectionRank"
+        ]
+      }
+    }
+  },
+  "required": ["evaluations"]
+}
